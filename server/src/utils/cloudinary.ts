@@ -1,4 +1,3 @@
-import { strictEqual } from "assert";
 import { v2 as cloudinary, UploadApiResponse } from "cloudinary";
 import fs from "fs";
 
@@ -41,5 +40,24 @@ const uploadOnCloudinaryNotDelete = async (localFilePath: string | undefined): P
   }
 };
 
+const deleteOnCloudinary = async (url: string): Promise<void> => {
+  try {
+    // Getting public Id
+    const publicId: string = String(url.split("/").pop()?.split(".")[0]);
+    console.log("This is public Id of thumbnail", publicId);
 
-export { uploadOnCloudinary, uploadOnCloudinaryNotDelete };
+    // Validating Public ID
+    if (!publicId) {
+      return console.log("No public Id present");
+    }
+
+    // Delete the file using the public ID
+    const result = await cloudinary.uploader.destroy(publicId);
+    console.log(result);
+  } catch (error) {
+    console.log((error as Error).message);
+  }
+};
+
+
+export { uploadOnCloudinary, uploadOnCloudinaryNotDelete, deleteOnCloudinary };
