@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { asyncHandlerPromise } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-import { NewProductRequestBody } from "../types/types.js";
+import { BaseQuery, NewProductRequestBody, SearchRequestQuery } from "../types/types.js";
 import { uploadOnCloudinary, uploadOnCloudinaryNotDelete, deleteOnCloudinary } from "../utils/cloudinary.js";
 import { Product } from "../models/product.models.js";
 import { rm } from "fs";
@@ -187,5 +187,56 @@ const deleteProduct = asyncHandlerPromise(async (req:Request, res:Response, next
 
 });
 
+const getAllProducts = asyncHandlerPromise(async (req:Request<{}, {}, SearchRequestQuery>, res:Response, next:NextFunction)=> {
+         
+    const {search, sort, category, price} = req.query;
 
-export { newProduct, getLatestProducts, getAllCategories, getAdminProducts, getSingleProduct, updateProduct, deleteProduct };
+    const page = Number(req.query.page) || 1;
+
+    const limit = Number(process.env.PRODUCT_PER_PAGE) || 10; // 10 products per page
+
+    const skip = (page - 1) * limit; // skip the products which are already shown on the previous page // 1st page skip 0 products, 2nd page skip 10 products, 3rd page skip 20 products and so on
+
+    const baseQuery: BaseQuery = {};
+
+    if ( search ) { 
+        baseQuery.name = {
+            $regex: search as string,
+            $options: "i",
+        };
+    }
+
+    if ( price ) {
+        baseQuery.price = { 
+            $lte: Number(price)
+        }
+    }
+
+    if ( category ) {
+        baseQuery.category = category as string;
+    }
+
+
+    const productsPromise = await Product.find(baseQuery)
+                                         .sort(sort && { price: sort === "asc" ? 1 : -1 }) // && is used to check if sort is present or not if present then sort the products according to the price in ascending or descending order
+                                         .limit(limit) // limit the products to 10 per page
+                                         .skip(skip); // skip the products which are already shown on the previous page
+
+
+    const [ products, filteredOnlyProduct  ] = await Promise.all([  // Promise.all is used to run multiple promises at the same time
+        productsPromise, // find all the products which are filtered according to the search query and limit and skip so that we can get the products for the current page
+        Product.find(baseQuery), // find all the products which are filtered according to the search query but without limit and skip so that we can get the total number of products
+    ]);
+
+    const totalPage = Math.ceil(filteredOnlyProduct.length / limit);
+
+    if ( products.length < 1 ) throw new ApiError(404, "No products found");
+
+    if ( !products || !filteredOnlyProduct ) throw new ApiError(404, "No products found");
+
+    return res.status(200).json(new ApiResponse(200, { products, totalPage }, "Products fetched successfully"));
+
+});
+
+
+export { newProduct, getLatestProducts, getAllCategories, getAdminProducts, getSingleProduct, updateProduct, deleteProduct, getAllProducts };

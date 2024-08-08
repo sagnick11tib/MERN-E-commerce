@@ -6,12 +6,13 @@ import { productUpload } from '../middlewares/multer.middleware.js';
 
 const router = Router();
 
-import { newProduct, getLatestProducts, getAllCategories, getAdminProducts, getSingleProduct, updateProduct, deleteProduct } from '../controllers/product.controllers.js';
+import { newProduct, getLatestProducts, getAllCategories, getAdminProducts, getSingleProduct, updateProduct, deleteProduct, getAllProducts } from '../controllers/product.controllers.js';
+
 
 
 
 router.route("/new").post( productUpload.array("photos", 5), newProduct);
-router.route("/all").get()
+router.route("/all").get(getAllProducts)
 router.route("/latest").get(getLatestProducts)
 router.route("/categories").get(getAllCategories)
 router.route("/admin-products").get(getAdminProducts)
