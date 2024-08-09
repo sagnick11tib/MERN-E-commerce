@@ -6,6 +6,7 @@ import { BaseQuery, NewProductRequestBody, SearchRequestQuery } from "../types/t
 import { uploadOnCloudinary, uploadOnCloudinaryNotDelete, deleteOnCloudinary } from "../utils/cloudinary.js";
 import { Product } from "../models/product.models.js";
 import { rm } from "fs";
+import { faker } from "@faker-js/faker";
 
 
 const newProduct = asyncHandlerPromise(async (req: Request< {}, {}, NewProductRequestBody >, res: Response, next: NextFunction) => {
@@ -237,6 +238,45 @@ const getAllProducts = asyncHandlerPromise(async (req:Request<{}, {}, SearchRequ
     return res.status(200).json(new ApiResponse(200, { products, totalPage }, "Products fetched successfully"));
 
 });
+
+const generateRandomProducts = async (count: number = 10): Promise<void> => {
+    const products = [];
+  
+    for (let i = 0; i < count; i++) {
+      const product = {
+        name: faker.commerce.productName(),
+        photo: "uploads\\5ee9c9d2-851d-4371-8a0b-7317016206e6.jpg",
+        price: faker.commerce.price({ min: 1500, max: 80000, dec: 0 }),
+        stock: faker.commerce.price({ min: 0, max: 100, dec: 0 }),
+        category: faker.commerce.department(),
+        description: faker.commerce.productDescription(), // Add description field
+        createdAt: new Date(faker.date.past()),
+        updatedAt: new Date(faker.date.recent()),
+        __v: 0,
+      };
+  
+      products.push(product);
+    }
+  
+    await Product.create(products);
+  
+    console.log({ success: true });
+  };
+
+const deleteRandomsProducts = async (count: number = 10) => {
+  const products = await Product.find({}).skip(2);
+
+  for (let i = 0; i < products.length; i++) {
+    const product = products[i];
+    await product.deleteOne();
+  }
+
+  console.log({ succecss: true });
+};
+
+//generateRandomProducts(40);
+//deleteRandomsProducts(38);
+
 
 
 export { newProduct, getLatestProducts, getAllCategories, getAdminProducts, getSingleProduct, updateProduct, deleteProduct, getAllProducts };

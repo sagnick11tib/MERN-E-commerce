@@ -23,5 +23,9 @@ router.route("/reviews/:id").get()
 router.route("/review/new/:id").post()
 router.route("/review/:id").delete()
 
+
+// router.route("/random").get(generateRandomProducts)
+// router.route("/random").delete(deleteRandomsProducts)
+
 export default router;
 
