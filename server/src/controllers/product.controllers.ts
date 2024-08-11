@@ -7,6 +7,8 @@ import { uploadOnCloudinary, uploadOnCloudinaryNotDelete, deleteOnCloudinary } f
 import { Product } from "../models/product.models.js";
 import { rm } from "fs";
 import { faker } from "@faker-js/faker";
+import { nodeCache } from "../app.js";
+import { invalidateCache } from "../utils/invalidCache.js";
 
 
 const newProduct = asyncHandlerPromise(async (req: Request< {}, {}, NewProductRequestBody >, res: Response, next: NextFunction) => {
@@ -61,15 +63,31 @@ const newProduct = asyncHandlerPromise(async (req: Request< {}, {}, NewProductRe
 
     if ( !product ) throw new ApiError(500, "Error in creating product");
 
+    await invalidateCache({ product: true });
+
     return res.status(201).json(new ApiResponse(201, { product }, "Product created successfully"));
 
 });
 
 const getLatestProducts = asyncHandlerPromise(async (req: Request, res: Response, next: NextFunction) => {
+    ///Revalidate on New , update or delete of product & on new Order
 
-    const latestProducts = await Product.find().sort({ createdAt: -1 }).limit(5); //-1 for descending order and 1 for ascending order
 
-    if ( !latestProducts ) throw new ApiError(404, "No products found");
+
+    let latestProducts;
+
+    if( nodeCache.has( "latest-products" ) ) {
+
+        latestProducts = JSON.parse(nodeCache.get("latest-products") as string);
+
+    } else {
+
+        latestProducts = await Product.find().sort({ createdAt: -1 }).limit(5); //-1 for descending order and 1 for ascending order
+
+        if ( !latestProducts ) throw new ApiError(404, "No products found");
+
+        nodeCache.set( "latest-products", JSON.stringify(latestProducts) ); // cache the latest products for 1 hour
+    }
 
     return res.status(200).json(new ApiResponse(200, { latestProducts }, "Latest products fetched successfully"));
 
