@@ -94,28 +94,58 @@ const getLatestProducts = asyncHandlerPromise(async (req: Request, res: Response
 });
 
 const getAllCategories = asyncHandlerPromise(async (req:Request, res:Response, next:NextFunction)=> {
-    const categories = await Product.distinct("category") // it find all the distinct categories from the category field of the product model
-    //distinct is a method of mongoose which is used to find all the distinct values of a field in a collection
 
-    if (!categories) throw new ApiError(404, "No categories found");
+    let categories;
+
+    if(nodeCache.has("categories")) categories = JSON.parse(nodeCache.get("categories") as string)
+    else{
+         categories = await Product.distinct("category") // it find all the distinct categories from the category field of the product model
+        //distinct is a method of mongoose which is used to find all the distinct values of a field in a collection
+    
+        if (!categories) throw new ApiError(404, "No categories found");
+
+        nodeCache.set("categories", JSON.stringify(categories));
+    }
+   
 
     return res.status(200).json(new ApiResponse(200, { categories }, "Categories fetched successfully"));
 
 });
 
 const getAdminProducts = asyncHandlerPromise(async (req:Request, res:Response, next:NextFunction)=> {
-    const products = await Product.find();
 
-    if (!products) throw new ApiError(404, "No products found");
+    let products;
+
+    if(nodeCache.has("all-products")) products = JSON.parse(nodeCache.get("all-products") as string) 
+    else {
+         products = await Product.find();
+
+        if (!products) throw new ApiError(404, "No products found");
+
+        nodeCache.set("all-products", JSON.stringify(products))
+    }
 
     return res.status(200).json(new ApiResponse(200, { products }, "Products fetched successfully"));
 });
 
-const getSingleProduct = asyncHandlerPromise(async (req:Request, res:Response, next:NextFunction)=> {
+const getSingleProduct = asyncHandlerPromise(async (req:Request, res:Response)=> {
 
-    const product = await Product.findById(req.params.id);
+    const id = req.params.id;
 
-    if (!product) throw new ApiError(404, "Product not found");
+     let product;
+
+     const key = `product-${id}`;
+
+
+     if(nodeCache.has(key)) product = JSON.parse(nodeCache.get(key) as string)
+     else{
+
+         product = await Product.findById(id);
+
+         if (!product) throw new ApiError(404, "Product not found");
+
+         nodeCache.set(key,JSON.stringify(product))
+     }
 
     return res.status(200).json(new ApiResponse(200, { product }, "Product fetched successfully"));
 });
@@ -176,6 +206,8 @@ const updateProduct = asyncHandlerPromise(async (req:Request, res:Response, next
             await deleteOnCloudinary(public_id);
 
         }));
+
+        await invalidateCache({ product: true, productId: String(product._id) });
         
         return res.status(200).json(new ApiResponse(200, { updatedProduct }, "Product updated successfully"));
 
@@ -201,6 +233,8 @@ const deleteProduct = asyncHandlerPromise(async (req:Request, res:Response, next
         }));
 
         await product.deleteOne();
+
+        await invalidateCache({ product: true, productId: String(product._id) });
 
         return res.status(200).json(new ApiResponse(200, {}, "Product deleted successfully"));
 

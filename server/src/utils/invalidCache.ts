@@ -1,25 +1,35 @@
 import { nodeCache } from "../app.js";
+import { Order } from "../models/order.models.js";
 import { Product } from "../models/product.models.js";
 import { InvalidateCacheProps } from "../types/types.js"
 
 export const invalidateCache = async ({ 
                                         product,
                                         order,
-                                        admin
+                                        admin,
+                                        userId,
+                                        orderId,
+                                        productId
                                       }: InvalidateCacheProps)=> {
     if(product) {
         const productKeys : string[] = [ 
             "latest-products", 
             "categories", 
-            "all-products"
+            "all-products",
+            `product-${productId}`
          ];
-        
-         const products = await Product.find({}).select("_id"); // get all products id to delete them from cache// [ { _id: 1 }, { _id: 2 }, { _id: 3 } ]
 
-            products.forEach((product) => { // push all products id to productKeys array // [ "latest-products", "categories", "all-products", "product-1", "product-2", "product-3" ]
-                productKeys.push(`product-${product._id}`);
-            });
+         if(typeof productId === "string") productKeys.push(`product-${productId}`);
 
-        nodeCache.del(productKeys);
+         if(typeof productId === "object") {
+            productId.forEach((i)=> productKeys.push(`product-${i}`))
+        }
+
+         nodeCache.del(productKeys);
+    }
+    if(order) {
+        const orderKeys: string[] = ["all-orders", `myorders_${userId}`, `order-${orderId}`];
+
+        nodeCache.del(orderKeys)
     }
                                       } 

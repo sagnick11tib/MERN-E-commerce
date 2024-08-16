@@ -2,7 +2,7 @@ import mongoose, { Schema } from "mongoose"
 
 const oderSchema = new Schema(
     {
-        shippingInfo: {
+    shippingInfo: {
         address: {
             type: String,
             required: [true, "Please enter shipping address"],
@@ -19,11 +19,11 @@ const oderSchema = new Schema(
             type: String,
             required: [true, "Please enter country"],
         },
-        pinCode: {
+        pincode: {
             type: Number,
             required: [true, "Please enter pin code"],
         },
-        phoneNo: {
+        phoneno: {
             type: Number,
             required: [true, "Please enter phone number"],
         },
@@ -31,7 +31,7 @@ const oderSchema = new Schema(
             type: String,
             required: false,
         },
-        addressType: {
+        addresstype: {
             type: String,
             enum: ["Home", "Work"],
             default: "Home",
@@ -42,7 +42,7 @@ const oderSchema = new Schema(
         ref: "User",
         required: true,
     },
-    subTotal: {
+    subtotal: {
         type: Number,
         required: true,
         default: 0.0,
@@ -50,9 +50,9 @@ const oderSchema = new Schema(
     tax: {
         type: Number,
         required: true,
-        default: 0.0,
+        default: 0.0, 
     },
-    shippingCharge: {
+    shippingcharges: {
         type: Number,
         required: true,
         default: 0.0,

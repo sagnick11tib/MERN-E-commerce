@@ -12,10 +12,12 @@ app.use("/uploads", express.static("uploads")) // to serve static files means im
 //routes import 
 import userRoutes from "./routes/user.routes.js";
 import productRoutes from "./routes/products.routes.js";
+import orderRoutes from "./routes/order.routes.js";
 
 //routes declaration
 app.use("/api/v1/user", userRoutes);
 app.use("/api/v1/products", productRoutes);
+app.use("/api/v1/orders", orderRoutes);
 
 
 app.get("/", (_, res) => {

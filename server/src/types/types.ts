@@ -44,6 +44,34 @@ export interface NewProductRequestBody {
     productId?: string | string[];
   };
 
+  export type ShippingInfoType = {
+    address: string;
+    city: string;
+    state: string;
+    country: string;
+    pinCode: number;
+  };
+
+  export type OrderItemType = {
+    name: string;
+    photo: string;
+    price: number;
+    quantity: number;
+    productId: string;
+  };
+
+  export interface NewOrderRequestBody{
+    shippingInfo: ShippingInfoType;
+    user: string;
+    subTotal: number;
+    tax: number;
+    shippingCharges: number;
+    discount: number;
+    total: number;
+    status: string;
+    orderItems: OrderItemType[];
+  }
+
 export type ControllerType = (
     req: Request,
     res: Response,
