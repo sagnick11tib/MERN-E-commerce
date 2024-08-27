@@ -14,12 +14,14 @@ import userRoutes from "./routes/user.routes.js";
 import productRoutes from "./routes/products.routes.js";
 import orderRoutes from "./routes/order.routes.js";
 import paymentRoutes from "./routes/payment.routes.js"
+import dashboardRoutes from "./routes/stats.routes.js";
 
 //routes declaration
 app.use("/api/v1/user", userRoutes);
 app.use("/api/v1/products", productRoutes);
 app.use("/api/v1/orders", orderRoutes);
 app.use("/api/v1/payment", paymentRoutes);
+app.use("/api/v1/dashboard", dashboardRoutes);
 
 
 app.get("/", (_, res) => {

@@ -1,10 +1,11 @@
 import { Router } from 'express';
 const router = Router();
+import { getDashboardStats, getPieCharts, getBarCharts, getLineCharts } from '../controllers/stats.controllers.js';
 
-router.route("/stats").get();
-router.route("/pie").get();
-router.route("/bar").get();
-router.route("/line").get();
+router.route("/stats").get(getDashboardStats);
+router.route("/pie").get(getPieCharts);
+router.route("/bar").get(getBarCharts);
+router.route("/line").get(getLineCharts);
 
 
 

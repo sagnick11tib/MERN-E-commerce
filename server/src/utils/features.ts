@@ -25,7 +25,7 @@ export const calculatePercentage = (thisMonth: number, lastMonth: number) => {
 
     const percent = (thisMonth / lastMonth) * 100;
 
-    return Number(percent.toFixed(0));
+    return Number(percent.toFixed(0)); // toFixed(0) will remove decimal points
 
 };
 
