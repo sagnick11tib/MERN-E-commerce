@@ -29,6 +29,24 @@ export const calculatePercentage = (thisMonth: number, lastMonth: number) => {
 
 };
 
+export const getCategories = async  ({ categories, productsCount }: { categories: string[], productsCount: number})=> {
+    
+    const categoriesCountPromise = categories.map( category => Product.countDocuments({ category }) );
+
+        const categoriesCount = await Promise.all(categoriesCountPromise);
+
+        const categoryCount: Record<string, number>[] = [];
+        // Record<string, number> is a type that defines an object with string keys and number values
+
+        categories.forEach((category, index) => {
+            categoryCount.push({
+                [category]: Math.round((categoriesCount[index] / productsCount) * 100) //this will calculate the percentage of each category
+            });//object with key as category and value as percentage of that category
+        });
+
+        return categoryCount;
+}
+
 
 
 

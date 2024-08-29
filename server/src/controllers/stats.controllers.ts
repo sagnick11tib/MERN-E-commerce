@@ -5,7 +5,7 @@ import { User } from "../models/user.models.js"
 import { Product } from "../models/product.models.js";
 import { Order } from "../models/order.models.js";
 import { nodeCache } from "../app.js";
-import { calculatePercentage } from "../utils/features.js";
+import { calculatePercentage, getCategories } from "../utils/features.js";
 
 
 const getDashboardStats = asyncHandlerPromise(async (req,res)=>{
@@ -141,18 +141,10 @@ const getDashboardStats = asyncHandlerPromise(async (req,res)=>{
             }
         });
 
-        const categoriesCountPromise = categories.map( category => Product.countDocuments({ category }) );
-
-        const categoriesCount = await Promise.all(categoriesCountPromise);
-
-        const categoryCount: Record<string, number>[] = [];
+        const categoryCount: Record<string, number>[] = await getCategories({ categories, productsCount });
         // Record<string, number> is a type that defines an object with string keys and number values
 
-        categories.forEach((category, index) => {
-            categoryCount.push({
-                [category]: Math.round((categoriesCount[index]/productsCount) * 100) //this will calculate the percentage of each category
-            });
-        });
+        
 
         const userRation = {
             male: usersCount - femaleUsersCount,
@@ -207,7 +199,111 @@ const getDashboardStats = asyncHandlerPromise(async (req,res)=>{
     return res.status(200).json(new ApiResponse(200,stats,"Dashboard stats fetched successfully"));
 });
 
-const getPieCharts = asyncHandlerPromise(async (req,res)=>{});
+const getPieCharts = asyncHandlerPromise(async (req,res)=>{
+
+    let charts: Record<string, any> = {};
+
+    const key = "admin-pie-charts";
+    
+    if(nodeCache.has(key)) charts = JSON.parse(nodeCache.get(key) as string);
+    else{
+
+        const [
+            processingOrder,
+            shippedOrder,
+            deliveredOrder,
+            categories,
+            productsCount,
+            productsOutOfStock,
+            allOrders,
+            allUsers,
+            adminUsers,
+            customerUsers,
+
+
+        ] = await Promise.all([
+            Order.countDocuments({status: "Processing"}),
+            Order.countDocuments({status: "Shipped"}),
+            Order.countDocuments({status: "Delivered"}),
+            Product.distinct("category"),
+            Product.countDocuments(),
+            Product.countDocuments({stock: 0}), //it will return which products stock is 0
+            Order.find({}).select(["total","subtotal","discount","tax","shippingcharges"]),
+            User.find({}).select(["dob"]),
+            User.countDocuments({role: "admin"}),
+            User.countDocuments({role: "user"}),
+            
+
+
+        ]);
+
+        const orderFullfillment = {
+            processing: processingOrder,
+            shipped: shippedOrder,
+            delivered: deliveredOrder
+        };
+
+        const productCategories = await getCategories({ categories, productsCount });
+
+        const stockAvailability = {
+            inStock: productsCount - productsOutOfStock,
+            outOfStock: productsOutOfStock
+        }
+
+        const grossIncome = allOrders.reduce( //grossIncome means total income before any deductions
+            (prev, order) => prev + (order.total || 0),0 //how? it will add all the orders total, if total is not present then it will add 0
+        )
+
+        const discount = allOrders.reduce(
+            (prev, order) => prev + (order.discount || 0),0
+        )
+
+        const productionCost = allOrders.reduce(
+            (prev, order) => prev + (order.shippingcharges || 0),0
+        )
+
+        const burnt = allOrders.reduce( //burnt means the amount that is burnt in the form of tax
+            (prev, order) => prev + (order.tax || 0),0
+        )
+
+        const marketingCost = Math.round(grossIncome * (30 / 100)); //it will calculate the marketing cost which is 30% of the gross income
+
+        const netMargin = grossIncome - discount - productionCost - burnt - marketingCost;
+
+        const revenueDistribution = {
+            netMargin: netMargin,
+            discount: discount,
+            productionCost: productionCost,
+            burnt: burnt,
+            marketingCost: marketingCost
+        }
+
+        const usersAgeGroup = {
+            teen: allUsers.filter((user)=> user.age < 20).length,
+            adult: allUsers.filter((user)=> user.age >= 20 && user.age < 40).length,
+            old: allUsers.filter((user)=> user.age >= 40).length
+        }
+
+        const adminCustomer = {
+            admin: adminUsers,
+            customer: customerUsers
+        }
+
+        charts = {
+            orderFullfillment: orderFullfillment,
+            productCategories: productCategories,
+            stockAvailability: stockAvailability,
+            revenueDistribution: revenueDistribution,
+            usersAgeGroup: usersAgeGroup,
+            adminCustomer: adminCustomer
+        }
+
+        nodeCache.set(key, JSON.stringify(charts));
+
+    }
+
+    return res.status(200).json(new ApiResponse(200,charts,"Pie charts fetched successfully"));
+});
 const getBarCharts = asyncHandlerPromise(async (req,res)=>{});
 const getLineCharts = asyncHandlerPromise(async (req,res)=>{});
 
