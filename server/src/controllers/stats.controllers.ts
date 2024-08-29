@@ -5,14 +5,17 @@ import { User } from "../models/user.models.js"
 import { Product } from "../models/product.models.js";
 import { Order } from "../models/order.models.js";
 import { nodeCache } from "../app.js";
-import { calculatePercentage, getCategories } from "../utils/features.js";
+import { calculatePercentage, getCategories, getChartData } from "../utils/features.js";
+import { create } from "domain";
 
 
 const getDashboardStats = asyncHandlerPromise(async (req,res)=>{
 
     let stats = {};
 
-    if(nodeCache.has("admin-stats")) stats = JSON.parse(nodeCache.get("admin-stats") as string);
+    let key = "admin-stats";
+
+    if(nodeCache.has(key)) stats = JSON.parse(nodeCache.get(key) as string);
     else{
         const today = new Date();
         const sixMonthsAgo = new Date();
@@ -121,19 +124,18 @@ const getDashboardStats = asyncHandlerPromise(async (req,res)=>{
         const revenue = allOrders.reduce((total, order) => total + (order.total || 0), 0);
 
         const count = {
-
             revenue,
             user: usersCount,
             product: productsCount,
             order: allOrders.length,
         }
 
-        const orderMonthCounts = new Array(6).fill(0);
+        const orderMonthCounts = new Array(6).fill(0);//[0,0,0,0,0,0]
         const orderMonthyRevenue = new Array(6).fill(0);
 
         lastSixMonthOrders.forEach((order) => {
             const creationDate = order.createdAt;
-            const monthDiff = today.getMonth() - creationDate.getMonth();
+            const monthDiff = (today.getMonth() - creationDate.getMonth() + 12) % 12;
 
             if ( monthDiff < 6 ) {
                 orderMonthCounts[6 - monthDiff - 1] += 1;
@@ -192,7 +194,7 @@ const getDashboardStats = asyncHandlerPromise(async (req,res)=>{
             latestTransaction: modifiedLatestTransaction
         }
 
-        nodeCache.set("admin-stats", JSON.stringify(stats)); //it will store the stats in cache
+        nodeCache.set(key, JSON.stringify(stats)); //it will store the stats in cache
 
     }
 
@@ -204,7 +206,7 @@ const getPieCharts = asyncHandlerPromise(async (req,res)=>{
     let charts: Record<string, any> = {};
 
     const key = "admin-pie-charts";
-    
+
     if(nodeCache.has(key)) charts = JSON.parse(nodeCache.get(key) as string);
     else{
 
@@ -222,6 +224,7 @@ const getPieCharts = asyncHandlerPromise(async (req,res)=>{
 
 
         ] = await Promise.all([
+
             Order.countDocuments({status: "Processing"}),
             Order.countDocuments({status: "Shipped"}),
             Order.countDocuments({status: "Delivered"}),
@@ -232,8 +235,6 @@ const getPieCharts = asyncHandlerPromise(async (req,res)=>{
             User.find({}).select(["dob"]),
             User.countDocuments({role: "admin"}),
             User.countDocuments({role: "user"}),
-            
-
 
         ]);
 
@@ -304,7 +305,111 @@ const getPieCharts = asyncHandlerPromise(async (req,res)=>{
 
     return res.status(200).json(new ApiResponse(200,charts,"Pie charts fetched successfully"));
 });
-const getBarCharts = asyncHandlerPromise(async (req,res)=>{});
-const getLineCharts = asyncHandlerPromise(async (req,res)=>{});
+const getBarCharts = asyncHandlerPromise(async (req,res)=>{
+    let charts: Record<string, any> = {};
+    const key = "admin-bar-charts";
+    if(nodeCache.has(key)) charts = JSON.parse(nodeCache.get(key) as string);
+    else{
+        const today = new Date();
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+        const twelveMonthsAgo = new Date();
+        twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+
+        const sixMonthProductPromise = Product.find({
+            createdAt: {
+                $gte: sixMonthsAgo,
+                $lte: today
+            }
+        }).select("createdAt");
+
+        const sixMonthUserPromise = User.find({
+            createdAt: {
+                $gte: sixMonthsAgo,
+                $lte: today
+            }
+        }).select("createdAt");
+
+        const twelveMonthOrdersPromise = Order.find({
+            createdAt: {
+                $gte:twelveMonthsAgo,
+                $lte:today
+            }
+        }).select("createdAt");
+         
+        const [
+            products,
+            users,
+            orders
+        ] = await Promise.all([
+            sixMonthProductPromise,
+            sixMonthUserPromise,
+            twelveMonthOrdersPromise
+        ]);
+
+        const productCounts = getChartData({ length: 6, docArr: products, today});
+        const userCounts = getChartData({ length: 6, docArr: users, today});
+        const orderCounts = getChartData({ length: 12, docArr: orders, today});
+
+
+        charts ={
+            users: userCounts,
+            products: productCounts,
+            orders: orderCounts
+        }
+
+        nodeCache.set(key, JSON.stringify(charts));
+    }
+
+    return res.status(200).json(new ApiResponse(200,charts,"Bar charts fetched successfully"));
+
+});
+const getLineCharts = asyncHandlerPromise(async (req,res)=>{
+    
+    let charts: Record<string, any> = {};
+
+    const key = "admin-line-charts";
+
+    if(nodeCache.has(key)) charts = JSON.parse(nodeCache.get(key) as string);
+    else{
+
+        const today = new Date();
+
+        const twelveMonthsAgo = new Date();
+
+        twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+
+        const baseQuery = {
+            createdAt: {
+                $gte: twelveMonthsAgo,
+                $lte: today
+            }
+        };
+
+        const [products, users, orders] = await Promise.all([
+            Product.find(baseQuery).select("createdAt"),
+            User.find(baseQuery).select("createdAt"),
+            Order.find(baseQuery).select(["createdAt","total","discount"]),
+        ]);
+
+        const productCounts = getChartData({ length: 12, docArr: products, today});
+        const userCounts = getChartData({ length: 12, docArr: users, today});
+        const discount = getChartData({ length: 12, docArr: orders, today, property: "discount"});
+        const revenue = getChartData({ length: 12, docArr: orders, today, property: "total"});
+
+        charts = {
+            users: userCounts,
+            products: productCounts,
+            discount: discount,
+            revenue: revenue
+        }
+
+        nodeCache.set(key, JSON.stringify(charts));
+    }
+
+    return res.status(200).json(new ApiResponse(200,charts,"Line charts fetched successfully"));
+
+});
 
 export { getDashboardStats, getPieCharts, getBarCharts, getLineCharts };
