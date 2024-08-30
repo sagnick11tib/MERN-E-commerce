@@ -63,7 +63,7 @@ const newProduct = asyncHandlerPromise(async (req: Request< {}, {}, NewProductRe
 
     if ( !product ) throw new ApiError(500, "Error in creating product");
 
-    await invalidateCache({ product: true });
+    invalidateCache({ product: true,  admin: true, });
 
     return res.status(201).json(new ApiResponse(201, { product }, "Product created successfully"));
 
@@ -207,7 +207,7 @@ const updateProduct = asyncHandlerPromise(async (req:Request, res:Response, next
 
         }));
 
-        await invalidateCache({ product: true, productId: String(product._id) });
+         invalidateCache({ product: true, productId: String(product._id),  admin: true, });
         
         return res.status(200).json(new ApiResponse(200, { updatedProduct }, "Product updated successfully"));
 
@@ -234,7 +234,7 @@ const deleteProduct = asyncHandlerPromise(async (req:Request, res:Response, next
 
         await product.deleteOne();
 
-        await invalidateCache({ product: true, productId: String(product._id) });
+         invalidateCache({ product: true, productId: String(product._id) ,  admin: true,});
 
         return res.status(200).json(new ApiResponse(200, {}, "Product deleted successfully"));
 

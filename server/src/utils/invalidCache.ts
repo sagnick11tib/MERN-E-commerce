@@ -32,4 +32,12 @@ export const invalidateCache = async ({
 
         nodeCache.del(orderKeys)
     }
+    if(admin) {
+        nodeCache.del([ 
+            "admin-stats",
+            "admin-pie-charts",
+            "admin-bar-charts",
+            "admin-line-charts",
+        ])
+    }
                                       } 

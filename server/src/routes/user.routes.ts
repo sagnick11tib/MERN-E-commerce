@@ -15,7 +15,7 @@ import { adminOnly } from '../middlewares/auth.middleware.js';
 //router.route("/new").post(newUser);
 router.route("/new").post(upload.single('photo'),newUser);
 router.route("/all").get(adminOnly,getAllUsers);
-router.route("/:id").get(getUser).delete(deleteUser);
+router.route("/:id").get(getUser).delete(adminOnly,deleteUser);
 
 export default router;
 

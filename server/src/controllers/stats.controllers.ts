@@ -6,14 +6,14 @@ import { Product } from "../models/product.models.js";
 import { Order } from "../models/order.models.js";
 import { nodeCache } from "../app.js";
 import { calculatePercentage, getCategories, getChartData } from "../utils/features.js";
-import { create } from "domain";
+
 
 
 const getDashboardStats = asyncHandlerPromise(async (req,res)=>{
 
     let stats = {};
 
-    let key = "admin-stats";
+    const key = "admin-stats";
 
     if(nodeCache.has(key)) stats = JSON.parse(nodeCache.get(key) as string);
     else{
@@ -130,23 +130,12 @@ const getDashboardStats = asyncHandlerPromise(async (req,res)=>{
             order: allOrders.length,
         }
 
-        const orderMonthCounts = new Array(6).fill(0);//[0,0,0,0,0,0]
-        const orderMonthyRevenue = new Array(6).fill(0);
+        const orderMonthCounts = getChartData({ length: 6, docArr: lastSixMonthOrders, today });
 
-        lastSixMonthOrders.forEach((order) => {
-            const creationDate = order.createdAt;
-            const monthDiff = (today.getMonth() - creationDate.getMonth() + 12) % 12;
-
-            if ( monthDiff < 6 ) {
-                orderMonthCounts[6 - monthDiff - 1] += 1;
-                orderMonthyRevenue[6 - monthDiff - 1] += order.total;
-            }
-        });
+        const orderMonthyRevenue = getChartData({ length: 6, docArr: lastSixMonthOrders, today, property: "total" });
 
         const categoryCount: Record<string, number>[] = await getCategories({ categories, productsCount });
         // Record<string, number> is a type that defines an object with string keys and number values
-
-        
 
         const userRation = {
             male: usersCount - femaleUsersCount,
@@ -305,6 +294,7 @@ const getPieCharts = asyncHandlerPromise(async (req,res)=>{
 
     return res.status(200).json(new ApiResponse(200,charts,"Pie charts fetched successfully"));
 });
+
 const getBarCharts = asyncHandlerPromise(async (req,res)=>{
     let charts: Record<string, any> = {};
     const key = "admin-bar-charts";
@@ -365,6 +355,7 @@ const getBarCharts = asyncHandlerPromise(async (req,res)=>{
     return res.status(200).json(new ApiResponse(200,charts,"Bar charts fetched successfully"));
 
 });
+
 const getLineCharts = asyncHandlerPromise(async (req,res)=>{
     
     let charts: Record<string, any> = {};

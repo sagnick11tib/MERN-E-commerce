@@ -25,7 +25,7 @@ const newOrder = asyncHandlerPromise(async (req: Request<{}, {}, NewOrderRequest
 
     await reduceStock(orderItems);
 
-    await invalidateCache({
+     invalidateCache({
         product: true,
         order: true,
         userId: user,
@@ -114,7 +114,7 @@ const processOrder = asyncHandlerPromise(async (req,res)=> {
 
     await order.save();
 
-    await invalidateCache({ product: false, order: true, admin: true, userId: order.user, orderId: String(order._id) });
+     invalidateCache({ product: false, order: true, admin: true, userId: order.user, orderId: String(order._id) });
 
     return res.status(200).json(new ApiResponse(200, { order }, "Order Processed Succesfully"));
 
@@ -130,7 +130,7 @@ const deleteOrder = asyncHandlerPromise(async (req,res)=> {
 
     await order.deleteOne();
 
-    await invalidateCache({ product: false, order: true, admin: true, userId: order.user, orderId: String(order._id) });
+    invalidateCache({ product: false, order: true, admin: true, userId: order.user, orderId: String(order._id) });
 
     return res.status(200).json(new ApiResponse(200, { }, "Order deleted Succcesfully"))
 

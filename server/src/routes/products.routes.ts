@@ -11,13 +11,13 @@ import { newProduct, getLatestProducts, getAllCategories, getAdminProducts, getS
 
 
 
-router.route("/new").post( productUpload.array("photos", 5), newProduct);
+router.route("/new").post( adminOnly,productUpload.array("photos", 5), newProduct);
 router.route("/all").get(getAllProducts)
 router.route("/latest").get(getLatestProducts)
 router.route("/categories").get(getAllCategories)
-router.route("/admin-products").get(getAdminProducts)
+router.route("/admin-products").get(adminOnly,getAdminProducts)
 
-router.route("/:id").get(getSingleProduct).put(productUpload.array("photos", 5),updateProduct).delete(deleteProduct)
+router.route("/:id").get(getSingleProduct).put(adminOnly,productUpload.array("photos", 5),updateProduct).delete(adminOnly,deleteProduct)
 
 router.route("/reviews/:id").get()
 router.route("/review/new/:id").post()
