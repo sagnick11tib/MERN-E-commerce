@@ -1,8 +1,10 @@
-
+import { stripe } from "./config/stripe.js";
 import NodeCache from "node-cache";
 export const nodeCache = new NodeCache();
 import express from "express";
 const app = express();
+
+
 
 
 app.use(express.json({limit: "16kb"}))

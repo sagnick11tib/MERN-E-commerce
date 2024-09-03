@@ -2,9 +2,26 @@ import { Coupon } from "../models/coupon.models.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandlerPromise } from "../utils/asyncHandler.js";
-import { Request, Response } from "express";
+import { stripe } from "../config/stripe.js";
 
-const createPaymentIntent = asyncHandlerPromise(async (req, res)=>{});
+
+const createPaymentIntent = asyncHandlerPromise(async (req, res)=>{
+    
+    const { amount } = req.body;
+    
+
+    if(!amount) throw new ApiError(400, "Amount is required");
+
+    const paymentIntent = await stripe.paymentIntents.create({
+        amount: Number(amount) * 100,
+        currency: "inr"
+    });
+
+    return res
+               .status(201)
+               .json(new ApiResponse(201, { clientSecret: paymentIntent.client_secret }, "Payment intent created successfully"));
+
+});
 const newCoupon = asyncHandlerPromise(async (req, res)=>{
 
     const { coupon, amount } = req.body;
