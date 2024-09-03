@@ -1,7 +1,8 @@
 import { Router, Routes, Route } from "react-router-dom";
 import { Suspense, lazy } from "react";
 import LoaderLayout from "../components/LoaderLayout";
-import Header from "../components/Header";
+import { Toaster } from "react-hot-toast";
+//import Header from "../components/Header";
 
 
 const Home = lazy(()=> import("../pages/Home"));
@@ -142,6 +143,7 @@ const Routing = ()=>{
 
                 </Routes>  
                 </Suspense>
+                <Toaster position="bottom-center" />
                 </>
     )
 }

@@ -10,6 +10,14 @@ const cartItems = [
     quantity: 4,
     photo: "https://m.media-amazon.com/images/I/618d5bS2lUL._SX679_.jpg",
     stock:88
+  },
+  {
+    productId: "1234",
+    name: "Product 1",
+    price: 2000,
+    quantity: 4,
+    photo: "https://m.media-amazon.com/images/I/618d5bS2lUL._SX679_.jpg",
+    stock:88
   }
 ];
 const Subtotal = 6000;

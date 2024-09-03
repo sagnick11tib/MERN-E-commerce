@@ -58,8 +58,8 @@ const Search = () => {
         <input 
           type="text" 
           placeholder="Search by name..." 
-          value={search} 
-          onChange={e => setSearch(e.target.value)} 
+          value={search} // value is the value of the input field
+          onChange={e => setSearch(e.target.value)} // e.target.value is the value of the input field
           className="w-full p-2 mb-4 border border-gray-300 rounded"
         />
 
