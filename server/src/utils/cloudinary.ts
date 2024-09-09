@@ -59,5 +59,17 @@ const deleteOnCloudinary = async (url: string): Promise<void> => {
   }
 };
 
+//upload image url to cloudinary
+const uploadImageUrlOnCloudinary = async (imageUrl: string): Promise<CloudinaryUploadResponse | null> => {
+  try {
+    const response = await cloudinary.uploader.upload(imageUrl, {
+      resource_type: "auto"
+    });
+    return response;
+  } catch (error) {
+    return null;
+  }
+};
 
-export { uploadOnCloudinary, uploadOnCloudinaryNotDelete, deleteOnCloudinary };
+
+export { uploadOnCloudinary, uploadOnCloudinaryNotDelete, deleteOnCloudinary, uploadImageUrlOnCloudinary };

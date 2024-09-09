@@ -1,12 +1,14 @@
 import { stripe } from "./config/stripe.js";
 import NodeCache from "node-cache";
+import cors from "cors";
+import morgan from "morgan";
 export const nodeCache = new NodeCache();
 import express from "express";
 const app = express();
 
 
-
-
+app.use(cors());
+app.use(morgan("dev"));
 app.use(express.json({limit: "16kb"}))
 app.use(express.urlencoded({extended: true, limit: "16kb"}))
 app.use(express.static("public")) // to serve static files means images, css, js files
