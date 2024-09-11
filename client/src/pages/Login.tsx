@@ -11,27 +11,40 @@ const Login = () => {
   const [gender, setGender] = useState<string>('');
   const [date, setDate] = useState<string>('');
 
-  const [ login ] = useLoginMutation();
+  const [login] = useLoginMutation();
 
   const loginHandler = async () => {
     try {
+      // Validate if gender and dob are filled
+      if (!gender) {
+        toast.error("Gender is required");
+        return;
+      }
+      if (!date) {
+        toast.error("Date of Birth is required");
+        return;
+      }
+
       const provider = new GoogleAuthProvider();
       if (!auth) {
         throw new Error("Firebase auth instance is not initialized.");
       }
+
+      // Proceed with Google sign-in if fields are valid
       const { user } = await signInWithPopup(auth, provider);
-      console.log(user.photoURL);
+
       const res = await login({
-       name: user.displayName!,//! is used to tell typescript that this value will never be null
+        name: user.displayName!, // '!' used to tell TypeScript this value won't be null
         email: user.email!,
         photo: user.photoURL!,
         gender,
         role: "user",
         dob: date,
         _id: user.uid
-      })
-      console.log(res);
-      if ("data" in res){
+      });
+
+      // Handle response
+      if ("data" in res) {
         toast.success(res.data!.message);
       } else {
         const error = res.error as FetchBaseQueryError;
@@ -40,23 +53,11 @@ const Login = () => {
       }
     } catch (error: any) {
       console.error("Login error:", error);
-      // if (error.code === 'auth/popup-closed-by-user') {
-      //   toast.error("Popup closed by user before completing the sign in.");
-      // } else if (error.code === 'auth/network-request-failed') {
-      //   toast.error("Network error. Please check your internet connection.");
-      // } else if (error.code === 'auth/argument-error') {
-      //   toast.error("Invalid arguments provided. Please try again.");
-      // } else {
-      //   toast.error("Failed to login. Please try again.");
-      // }
     }
   };
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-100">
-      {
-        
-      }
       <main className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
         <h1 className="text-2xl font-bold mb-6 text-center">Login</h1>
         <div className="mb-4">
@@ -82,7 +83,10 @@ const Login = () => {
         </div>
         <div className="text-center">
           <p className="mb-4 text-gray-600">Already Signed In Once</p>
-          <button onClick={loginHandler} className="flex items-center justify-center w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-700">
+          <button
+            onClick={loginHandler}
+            className="flex items-center justify-center w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-700"
+          >
             <FcGoogle className="mr-2" /> <span>Sign in with Google</span>
           </button>
         </div>

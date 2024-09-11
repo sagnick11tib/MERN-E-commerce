@@ -12,14 +12,14 @@ const newUser = asyncHandler(async (
 ) => {
   const { name, email, _id, gender, dob, photo } = req.body;
 
-  if (!_id || !name || !email || !gender || !dob) {
-    throw new ApiError(400, "All fields are required");
-  }
-
   // Check if user already exists
   let user = await User.findById(_id);
   if (user) {
     return res.status(201).json(new ApiResponse(201, { user }, `Welcome back ${user.name}`));
+  }
+
+  if (!_id || !name || !email || !gender || !dob) {
+    throw new ApiError(400, "All fields are required");
   }
 
   // Determine whether to use photo from URL or file upload

@@ -12,5 +12,5 @@ export type DeleteUserRequest = {
 
 export type UserResponse = {
     success: boolean;
-    user: User;
+    data: User;
 }

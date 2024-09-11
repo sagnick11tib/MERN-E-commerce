@@ -1,12 +1,9 @@
-import { Router, Routes, Route } from "react-router-dom";
-import { Suspense, lazy, useEffect } from "react";
-import LoaderLayout from "../components/LoaderLayout";
+import { Routes, Route } from "react-router-dom";
+import { Suspense, lazy } from "react";
+import LoaderLayout from "../components/Loader";
 import { Toaster } from "react-hot-toast";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "../firebase";
-import { getUser } from "../redux/api/userAPI";
-import { useDispatch } from "react-redux";
-import { userDoesNotExist, userExist } from "../redux/reducer/userReducer";
+import {  useSelector } from "react-redux";
+import { UserReducerInitialState } from "../types/reducer-types";
 //import Header from "../components/Header";
 
 
@@ -44,62 +41,15 @@ const DiscountManagement = lazy(()=> import("../pages/admin/management/DiscountM
 // Not Found
 const NotFound = lazy(()=> import("../pages/NotFound"));
 
-
-// import Home from "../pages/Home";
-// import Search from "../pages/Search";
-// import ProductDetails from "../pages/ProductDetails";
-// import Cart from "../pages/Cart";
-// import Login from "../pages/Login";
-// import ProtectedRoute from "../components/ProtectedRoute";
-// import Shipping from "../pages/Shipping";
-// import Orders from "../pages/Orders";
-// import OrderDetails from "../pages/OrderDetails";
-// import Checkout from "../pages/Checkout";
-
-// // Admin Pages
-// import Dashboard from "../pages/admin/Dashboard";
-// import Products from "../pages/admin/Products";
-// import Customers from "../pages/admin/Customers";
-// import Transaction from "../pages/admin/Transaction";
-// import Discount from "../pages/admin/Discount";
-// // Charts
-// import Barcharts from "../pages/admin/charts/Barcharts";
-// import Piecharts from "../pages/admin/charts/Piecharts";
-// import Linecharts from "../pages/admin/charts/Linecharts";
-// // Apps
-// import Coupon from "../pages/admin/apps/Coupon";
-// import Stopwatch from "../pages/admin/apps/Stopwatch";
-// import Toss from "../pages/admin/apps/Toss";
-// // Management
-// import NewProduct from "../pages/admin/management/NewProduct";
-// import ProductManagement from "../pages/admin/management/ProductManagement";
-// import TransactionManagement from "../pages/admin/management/TransactionManagement";
-// import NewDiscount from "../pages/admin/management/NewDiscount";
-// import DiscountManagement from "../pages/admin/management/DiscountManagement";
-// // Not Found
-// import NotFound from "../pages/NotFound";
-
-
-
 const Routing = ()=>{
 
-  const dispatch  = useDispatch();
 
-  useEffect(() => {
-    //onAuthStateChanged is used to check if the user is logged in or not two parameters are passed to it, the first is the auth object and the second is a callback function that takes the user as a parameter then it checks if the user exists or not
-    onAuthStateChanged(auth, async (user) => {
-      if ( user ) {
-        const res = await getUser(user.uid);
-        //console.log(data.data)
-        dispatch(userExist(res.data));//userExist is an action that is dispatched to the reducer
-      } else dispatch(userDoesNotExist());
-    })
-  }, []);
-  // const user = {
-  //   role: "admin",
-  // }
+ const { user } = useSelector((state: {userReducer :UserReducerInitialState})=> state.userReducer);
+ console.log(user)
+
     return (
       <>
+       
        
         <Suspense fallback={<LoaderLayout />}>
         <Routes>
@@ -107,25 +57,25 @@ const Routing = ()=>{
             <Route path="/search" element={<Search />} />
             <Route path="/product/:id" element={<ProductDetails />} />
             <Route path="/cart" element={<Cart />} />
-            <Route path="/login" element={<Login />} />
-            {/* <Route path="/login" element={<ProtectedRoute isAuthenticated={user ? false : true}><Login /></ProtectedRoute>} /> */}
+            <Route path="/login" element={<ProtectedRoute isAuthenticated={user ? false : true}><Login /></ProtectedRoute>} />
             {/* Logged In User Routes */}
             {/* <Route                element={<ProtectedRoute isAuthenticated={user ? true : false} /> } > */}
-            <Route>
+            <Route element={ <ProtectedRoute isAuthenticated = {user ? true : false} />}>
             <Route path="/shipping" element={<Shipping />} />
             <Route path="/orders" element={<Orders />} />
             <Route path="/order/:id" element={<OrderDetails />} />
             <Route path="/pay" element={<Checkout />} />
             </Route>
             {/* Admin Routes */}
-            <Route //element={
-              //<ProtectedRoute
-               // isAuthenticated={true}
-               // adminOnly={true}
-                //admin={user?.role === "admin" ? true : false}
-              ///>
-            //} 
-            >
+            <Route 
+             element={
+              <ProtectedRoute
+                isAuthenticated={true}
+                adminOnly={true}
+                admin={user?.role === "admin" ? true : false}
+              />
+            }
+          >
             <Route path="/admin/dashboard" element={<Dashboard />} />
             <Route path="/admin/product" element={<Products />} />
             <Route path="/admin/customer" element={<Customers />} />
@@ -164,6 +114,7 @@ const Routing = ()=>{
                 </Routes>  
                 </Suspense>
                 <Toaster position="bottom-center" />
+                
                 </>
     )
 }

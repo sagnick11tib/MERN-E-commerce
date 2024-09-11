@@ -9,6 +9,6 @@ export const store = configureStore({
         [userAPI.reducerPath]: userAPI.reducer,
         [userReducer.name]: userReducer.reducer,
     },
-    // middleware: (getDefaultMiddleware)=>[...getDefaultMiddleware(),userAPI.middleware,]
+     //middleware: (getDefaultMiddleware)=>[...getDefaultMiddleware(),userAPI.middleware,]
     middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(userAPI.middleware),
 });
