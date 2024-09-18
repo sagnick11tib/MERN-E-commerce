@@ -81,7 +81,7 @@ const getLatestProducts = asyncHandlerPromise(async (req: Request, res: Response
         latestProducts = JSON.parse(nodeCache.get("latest-products") as string);
 
     } else {
-
+        // throw new Error("No products found");
         latestProducts = await Product.find().sort({ createdAt: -1 }).limit(5); //-1 for descending order and 1 for ascending order
 
         if ( !latestProducts ) throw new ApiError(404, "No products found");

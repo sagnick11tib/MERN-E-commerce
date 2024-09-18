@@ -3,19 +3,17 @@ import { FaPlus } from 'react-icons/fa';
 
 type ProductsProps = {
     productId: string;
-    photo: string;
+    photos: {url: string}[]; //means photos is an array and it has an object with a key url
     name: string;
     price: number;
     stock: number;
     handler: () => void;
 }
 
-const server = "abcdefgh"
-
 const ProductCard = (
     {
     productId,
-    photo,
+    photos,
     name,
     price,
     stock,
@@ -24,7 +22,7 @@ const ProductCard = (
   return (
     <>
     <div className='productcard'>
-    <img src={photo}alt={name} />
+    <img src={photos[1]?.url} alt={name} />
     {/* <img src={`${server}/${photo}` }alt={name} /> */}
     <p>{name}</p>
     <span>₹{price}</span>

@@ -25,15 +25,15 @@ const Login = () => {
         return;
       }
 
-      const provider = new GoogleAuthProvider();
+      const provider = new GoogleAuthProvider(); // Create Google auth provider instance
       if (!auth) {
         throw new Error("Firebase auth instance is not initialized.");
       }
 
       // Proceed with Google sign-in if fields are valid
-      const { user } = await signInWithPopup(auth, provider);
+      const { user } = await signInWithPopup(auth, provider); // if user already logged in then the user data is stored in the redux store and the user is redirected to the home page
 
-      const res = await login({
+      const res = await login({ // send the user data to the backend to store in the database using the login mutation
         name: user.displayName!, // '!' used to tell TypeScript this value won't be null
         email: user.email!,
         photo: user.photoURL!,

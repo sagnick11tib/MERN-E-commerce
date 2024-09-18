@@ -1,4 +1,4 @@
-import { User } from "./types";
+import { Product, User } from "./types";
 
 export type MessageResponse = {
     success: boolean;
@@ -13,4 +13,14 @@ export type DeleteUserRequest = {
 export type UserResponse = {
     success: boolean;
     data: User;
+}
+
+
+export type latestProducts = {
+    latestProducts: Product[];
+}
+
+export type AllProductsResponse = {
+    success: boolean;
+    data: latestProducts | undefined;
 }

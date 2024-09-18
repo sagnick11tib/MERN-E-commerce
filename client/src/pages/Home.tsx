@@ -1,13 +1,24 @@
 import { Link } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
+import { useLatestProductsQuery } from '../redux/api/productAPI';
+import toast from 'react-hot-toast';
+import Loader from '../components/Loader';
 
 const Home = () => {
   console.log('Home');
 
 
+
+
+  const { data, isLoading, isError } = useLatestProductsQuery("");
+  
+  
   const addToCartHandler = ()=> {
 
   }
+
+  if (isError) toast.error('Failed to fetch products');
+
   return (
     <>
       <div className='home'>
@@ -20,14 +31,26 @@ const Home = () => {
           <Link to="/search" className='text-black-500 no-underline text-2xl font-serif'>MORE</Link>
         </h1>
         <main>
-          <ProductCard
-                        productId='123456'
-                        name='Macbook'
-                        price={129999}
-                        stock={20}
-                        handler={addToCartHandler}
-                        photo="https://m.media-amazon.com/images/I/618d5bS2lUL._SX679_.jpg"
-           />
+        {isLoading ? ( <Loader />):(data?.data?.latestProducts.map((i) => {
+          // Ensure `photos` is an array of objects with `url`
+          const photosArray = Array.isArray(i.photos) 
+            ? i.photos // If photos is already an array, keep it
+            : typeof i.photos === 'string' 
+            ? [{ url: i.photos }] // If photos is a string, wrap it in an array
+            : []; // Otherwise, provide an empty array
+
+          return (
+            <ProductCard
+              key={i._id}
+              productId={i._id}
+              name={i.name}
+              price={i.price}
+              stock={i.stock}
+              handler={addToCartHandler}
+              photos={photosArray}  // Pass the corrected photos array
+            />
+          );
+        }))}
         </main>
       </div>
     </>

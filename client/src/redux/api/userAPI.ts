@@ -3,7 +3,7 @@ import { User } from "../../types/types";
 import { MessageResponse, DeleteUserRequest, UserResponse } from "../../types/api-types";
 import axios from "axios";
 
-export const userAPI = createApi({
+export const userAPI = createApi({ //helping to send the user data to the backend to store in the database using the login mutation
     reducerPath: "userApi",
     baseQuery: fetchBaseQuery({
         baseUrl: `${import.meta.env.VITE_SERVER}/api/v1/user/`,
