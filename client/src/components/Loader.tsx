@@ -35,11 +35,18 @@ export const Skeleton = ({
   containerHeight = "unset",
 }: SkeletonProps) => {
   const skeletions = Array.from({ length }, (_, idx) => (
-    <div key={idx} className="skeleton-shape" style={{ height }}></div>
+    <div
+      key={idx}
+      className="skeleton-shape bg-gray-300 animate-pulse rounded-md"
+      style={{ height }}
+    ></div>
   ));
 
   return (
-    <div className="skeleton-loader" style={{ width, height: containerHeight }}>
+    <div
+      className="skeleton-loader flex flex-col space-y-2"
+      style={{ width, height: containerHeight }}
+    >
       {skeletions}
     </div>
   );

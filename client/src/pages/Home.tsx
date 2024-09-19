@@ -2,15 +2,12 @@ import { Link } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
 import { useLatestProductsQuery } from '../redux/api/productAPI';
 import toast from 'react-hot-toast';
-import Loader from '../components/Loader';
+import Loader, { Skeleton } from '../components/Loader';
 
 const Home = () => {
-  console.log('Home');
-
-
-
-
+  
   const { data, isLoading, isError } = useLatestProductsQuery("");
+  console.log(data)
   
   
   const addToCartHandler = ()=> {
@@ -31,7 +28,7 @@ const Home = () => {
           <Link to="/search" className='text-black-500 no-underline text-2xl font-serif'>MORE</Link>
         </h1>
         <main>
-        {isLoading ? ( <Loader />):(data?.data?.latestProducts.map((i) => {
+        {isLoading ? ( <Skeleton />):(data?.data?.latestProducts.map((i) => {
           // Ensure `photos` is an array of objects with `url`
           const photosArray = Array.isArray(i.photos) 
             ? i.photos // If photos is already an array, keep it

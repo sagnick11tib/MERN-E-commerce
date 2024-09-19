@@ -12,9 +12,13 @@ export const productAPI = createApi({
             query: () => "latest",
             providesTags: ["product"] 
         }),
+        allProducts: builder.query<AllProductsResponse, string>({
+            query: (id) => `admin-products?_id=${id}`,
+            providesTags: ["product"]
+        })
         
     })
 });
 
-export const { useLatestProductsQuery } = productAPI;
+export const { useLatestProductsQuery, useAllProductsQuery  } = productAPI;
 

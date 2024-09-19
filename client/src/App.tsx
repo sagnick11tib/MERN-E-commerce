@@ -10,7 +10,10 @@ import { useDispatch } from 'react-redux'
 import { userDoesNotExist, userExist } from './redux/reducer/userReducer'
 import Loader from './components/Loader'
 
+
+
 const App = () => {
+
 
   const { user, loading } = useSelector((state: {userReducer :UserReducerInitialState})=> state.userReducer);
   const dispatch  = useDispatch(); //dispatch is used to dispatch an action to the reducer
@@ -24,6 +27,8 @@ const App = () => {
       } else dispatch(userDoesNotExist());
     })
   }, []);
+
+  
   
   return  loading? <Loader /> :( 
      <> 
