@@ -14,7 +14,6 @@ import Loader from './components/Loader'
 
 const App = () => {
 
-
   const { user, loading } = useSelector((state: {userReducer :UserReducerInitialState})=> state.userReducer);
   const dispatch  = useDispatch(); //dispatch is used to dispatch an action to the reducer
   useEffect(() => { //why in this case we use useEffect? = useEffect is used to run the code only once when the component is mounted and not every time the component is rendered so it is used to check if the user is logged in or not only once when the component is mounted
@@ -28,8 +27,6 @@ const App = () => {
     })
   }, []);
 
-  
-  
   return  loading? <Loader /> :( 
      <> 
      
@@ -40,5 +37,3 @@ const App = () => {
 }
 
 export default App
-
-

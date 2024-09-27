@@ -58,8 +58,8 @@ const Search = () => {
         <input 
           type="text" 
           placeholder="Search by name..." 
-          value={search} // value is the value of the input field
-          onChange={e => setSearch(e.target.value)} // e.target.value is the value of the input field
+          value={search}
+          onChange={e => setSearch(e.target.value)}
           className="w-full p-2 mb-4 border border-gray-300 rounded"
         />
 
@@ -70,7 +70,7 @@ const Search = () => {
             price={129999}
             stock={20}
             handler={addToCartHandler}
-            photo="https://m.media-amazon.com/images/I/618d5bS2lUL._SX679_.jpg"
+            photos={[{ url: "https://m.media-amazon.com/images/I/618d5bS2lUL._SX679_.jpg" }]}  // Wrap the photo URL in an array
           />
         </div>
         <article className="flex justify-between items-center mt-4">
@@ -95,4 +95,4 @@ const Search = () => {
   )
 }
 
-export default Search
+export default Search;
