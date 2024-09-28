@@ -13,7 +13,7 @@ const Dashboard = () => {
   const img  = "http://res.cloudinary.com/dtr59xel0/image/upload/v1725865544/hmvnbxidwqvzy5lkmwuf.png"
   return (
     <>
-    <div className="adminContainer">
+    <div className="admin-container">
       <AdminSidebar />
       <main className='dashboard'>
        <div className="bar">

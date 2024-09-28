@@ -42,7 +42,7 @@ const Cart = () => {
   },[couponCode])
 
   return (
-    <div>
+    <div className="cart">
       <main>
         {
             cartItems.length > 0 ? (cartItems.map((item,idx)=>{

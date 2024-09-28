@@ -6,8 +6,6 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
 import toast from 'react-hot-toast';
 
-//const user = { _id: "", role: "admin" };
-
 interface PropsType {
   user: User | null;
 }
@@ -27,34 +25,36 @@ const Header = ({ user }: PropsType) => {
 
   return (
     <>
-      <nav className="flex items-center justify-between p-4 bg-gray-800 text-white shadow-md">
-        <div className="flex items-center gap-4 ml-auto">
-          <Link onClick={() => setIsOpen(false)} to={"/"} className="hover:text-gray-400 mx-4">Home</Link>
-          <Link onClick={() => setIsOpen(false)} to={"/search"} className="hover:text-gray-400 mx-4"><FaSearch /></Link>
-          <Link onClick={() => setIsOpen(false)} to={"/cart"} className="hover:text-gray-400 mx-4"><FaShoppingBag /></Link>
+      <nav className='header'>
+          <Link onClick={() => setIsOpen(false)} to={"/"}>Home</Link>
+          <Link onClick={() => setIsOpen(false)} to={"/search"}>
+            <FaSearch />
+          </Link>
+          <Link onClick={() => setIsOpen(false)} to={"/cart"}>
+            <FaShoppingBag />
+          </Link>
           {user?._id ? (
             <>
-              <button onClick={() => setIsOpen((prev) => !prev)} className="hover:text-gray-400 mx-4">
-                <FaUser /> 
+              <button onClick={() => setIsOpen((prev) => !prev)}>
+                <FaUser />
               </button>
-              <dialog open={isOpen} className="absolute top-16 right-4 w-72 bg-white p-4 rounded-lg shadow-lg z-50">
-                <div className="flex flex-col gap-2">
+              <dialog open={isOpen}>
+                <div>
                   {user.role === "admin" && (
-                    <Link to="/admin/dashboard" className="hover:text-gray-700">Admin</Link>
+                    <Link to="/admin/dashboard">Admin</Link>
                   )}
-                  <Link to="/orders" className="hover:text-gray-700">Orders</Link>
-                  <button onClick={logoutHandler} className="flex items-center gap-2 hover:text-gray-700">
+                  <Link to="/orders">Orders</Link>
+                  <button onClick={logoutHandler}>
                     <FaSignOutAlt /> Logout
                   </button>
                 </div>
               </dialog>
             </>
           ) : (
-            <Link to={"/login"} className="hover:text-gray-400 mx-4">
+            <Link to={"/login"}>
               <FaSignInAlt />
             </Link>
           )}
-        </div>
       </nav>
     </>
   );

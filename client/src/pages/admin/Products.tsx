@@ -129,7 +129,7 @@ const ProductTable = useCallback(TableHOC<DataType>(
 
 
   return (
-    <div className='adminContainer'>
+    <div className='admin-container'>
       <AdminSidebar />
       <main>
         {

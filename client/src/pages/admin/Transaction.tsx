@@ -136,7 +136,7 @@ const Transaction = () => {
     true
     ), []);
   return (
-    <div className="adminContainer">
+    <div className="admin-container">
       <AdminSidebar />
       <main>
         {
