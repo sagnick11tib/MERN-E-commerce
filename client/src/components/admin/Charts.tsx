@@ -176,7 +176,7 @@ export const PieChart = ({
   const pieChartOptions: ChartOptions<"pie"> = {
     responsive: true,
     plugins: {
-      legend: {
+      legend: { //
         display: false,
       },
     },
