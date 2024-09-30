@@ -11,68 +11,94 @@ import { nodeCache } from "../app.js";
 import { invalidateCache } from "../utils/invalidCache.js";
 
 
-const newProduct = asyncHandlerPromise(async (req: Request< {}, {}, NewProductRequestBody >, res: Response, next: NextFunction) => {
+const newProduct = asyncHandlerPromise(async (req: Request<{}, {}, NewProductRequestBody>, res: Response, next: NextFunction) => {
 
-    const { name, price, description, category, stock } = req.body;
+  // Explicitly type `req.files` to ensure TypeScript knows the expected structure
+  const files = req.files as { [fieldname: string]: Express.Multer.File[] };
 
-    if (!name || !price || !description || !category || !stock) {
-                                                                
-                                                                // if photos are uploaded but fields are empty then delete the photos
-                                                                
-                                                                if (req.files) {
-                                                                    const photosLocalPath: string[] = (req.files as Express.Multer.File[]).map((file: Express.Multer.File) => file.path);
-                                                                    
-                                                                    photosLocalPath.forEach( async ( path )=> {
-                                                                        await deleteOnCloudinary(path);
-                                                                        rm(path, (err) => {
-                                                                            if (err) throw new ApiError(500, "Error in deleting photos");
-                                                                        });
-                                                                    });
-                                                                }
+  const { name, price, description, category, stock } = req.body;
 
-                                                                throw new ApiError(400, "Please fill all fields")
-                                                            
-                                                            };
+  // Validate form fields
+  if (!name || !price || !description || !category || !stock) {
+      // Delete uploaded files if fields are missing
+      if (files?.['mainPhoto'] && files['mainPhoto'].length > 0) {
+          await deleteOnCloudinary(files['mainPhoto'][0].path);
+      }
+      if (files?.['subPhotos'] && files['subPhotos'].length > 0) {
+          for (const file of files['subPhotos']) {
+              await deleteOnCloudinary(file.path);
+          }
+      }
+      throw new ApiError(400, "Please fill all fields");
+  }
 
-    const  photosLocalPath: string[] = (req.files as Express.Multer.File[]).map((file: Express.Multer.File) => file.path);
+  // Ensure mainPhoto is uploaded
+  if (!files?.['mainPhoto'] || files['mainPhoto'].length < 1) {
+      throw new ApiError(400, "Please upload a main photo");
+  }
 
-    if ( !photosLocalPath ) throw new ApiError(400, "Please upload photos");
+  // Ensure at least one sub-photo is uploaded
+  if (!files?.['subPhotos'] || files['subPhotos'].length < 1) {
+      throw new ApiError(400, "Please upload at least one sub-photo");
+  }
 
-    if ( photosLocalPath.length < 1 ) throw new ApiError(400, "Please upload atleast one photo");
+  // Limit to max 5 sub-photos
+  if (files['subPhotos'].length > 5) {
+      throw new ApiError(400, "Please upload a maximum of 5 sub-photos");
+  }
 
-    if ( photosLocalPath.length > 5 ) throw new ApiError(400, "Please upload maximum 5 photos");
+  // Upload photos to Cloudinary
+  const mainPhotoUpload = await uploadOnCloudinaryNotDelete(files['mainPhoto'][0].path);
+  if (!mainPhotoUpload) {
+      throw new ApiError(500, "Error in uploading main photo");
+  }
 
-    const photos = await Promise.all(
-                                      photosLocalPath.map( async ( path )=> {
-                                            const uploadPhoto = await uploadOnCloudinaryNotDelete(path);
+  const mainPhoto = {
+      public_id: mainPhotoUpload.public_id,
+      url: mainPhotoUpload.url,
+  };
 
-                                            if ( !uploadPhoto ) throw new ApiError(500, "Error in uploading photos");
+  const subPhotos = await Promise.all(
+      files['subPhotos'].map(async (file) => {
+          const uploadPhoto = await uploadOnCloudinaryNotDelete(file.path);
+          if (!uploadPhoto) {
+              throw new ApiError(500, "Error in uploading sub-photos");
+          }
+          return { public_id: uploadPhoto.public_id, url: uploadPhoto.url };
+      })
+  );
 
-                                            return { public_id: uploadPhoto.public_id, url: uploadPhoto.url }; 
-                                      })
-    );
+  // Create product in the database
+  const product = await Product.create({
+      name,
+      price,
+      description,
+      category,
+      stock,
+      mainPhoto,
+      subPhotos,
+  });
 
-    const product = await Product.create({
-        name,
-        price,
-        description,
-        category,
-        stock,
-        photos
-    });
+  if (!product) {
+      throw new ApiError(500, "Error in creating product");
+  }
 
-    if ( !product ) throw new ApiError(500, "Error in creating product");
+  // Invalidate cache if necessary
+  invalidateCache({ product: true, admin: true });
 
-    invalidateCache({ product: true,  admin: true, });
-
-    return res.status(201).json(new ApiResponse(201, { product }, "Product created successfully"));
-
+  // Send response
+  return res.status(201).json(new ApiResponse(201, { product }, "Product created successfully"));
 });
+
+const checkFileComeOrNot = asyncHandlerPromise(async (req: Request, res: Response, next: NextFunction) => {
+    console.log(req.files)
+    return res.status(200).json(new ApiResponse(200, { message: "File received" }, "File received successfully"));
+});
+
+
 
 const getLatestProducts = asyncHandlerPromise(async (req: Request, res: Response, next: NextFunction) => {
     ///Revalidate on New , update or delete of product & on new Order
-
-
 
     let latestProducts;
 
@@ -85,7 +111,7 @@ const getLatestProducts = asyncHandlerPromise(async (req: Request, res: Response
         latestProducts = await Product.find().sort({ createdAt: -1 }).limit(5); //-1 for descending order and 1 for ascending order
 
         if ( !latestProducts ) throw new ApiError(404, "No products found");
-
+        console.log(latestProducts)
         nodeCache.set( "latest-products", JSON.stringify(latestProducts) ); // cache the latest products for 1 hour
     }
 
@@ -150,95 +176,137 @@ const getSingleProduct = asyncHandlerPromise(async (req:Request, res:Response)=>
     return res.status(200).json(new ApiResponse(200, { product }, "Product fetched successfully"));
 });
 
-const updateProduct = asyncHandlerPromise(async (req:Request, res:Response, next:NextFunction)=> {
+const updateProduct = asyncHandlerPromise(async (req: Request, res: Response, next: NextFunction) => {
 
-    const { id } = req.params;
-    
-    const { name, price, stock, category, description} = req.body;
+  const { id } = req.params;
 
-    if ( !name || !price || !description || !category || !stock ) throw new ApiError(400, "Please fill all fields");
+  const { name, price, stock, category, description } = req.body;
 
-    const photosLocalPath = (req.files as Express.Multer.File[]).map((file: Express.Multer.File) => file.path);
+  if (!name || !price || !description || !category || !stock)  throw new ApiError(400, "Please fill all fields");
+  
+  // Ensure `req.files` exists and contains the fields we need
+  if (!req.files || !("mainPhoto" in req.files) || !("subPhotos" in req.files)) throw new ApiError(400, "Please upload photos correctly");
+  
+  // Get main photo and sub-photos from `req.files`
+  const mainPhotoFile = (req.files as { [fieldname: string]: Express.Multer.File[] })["mainPhoto"]?.[0];
 
-    if ( !photosLocalPath ) throw new ApiError(400, "Please upload photos");
+  const subPhotosFiles = (req.files as { [fieldname: string]: Express.Multer.File[] })["subPhotos"];
 
-    if ( photosLocalPath.length < 1 ) throw new ApiError(400, "Please upload atleast one photo");
+  if (!mainPhotoFile)  throw new ApiError(400, "Please upload a main photo");
+  
+  if (!subPhotosFiles || subPhotosFiles.length < 1)  throw new ApiError(400, "Please upload at least one sub-photo");
+  
+  if (subPhotosFiles.length > 5) throw new ApiError(400, "Please upload a maximum of 5 sub-photos");
 
-    if ( photosLocalPath.length > 5 ) throw new ApiError(400, "Please upload maximum 5 photos");
+  // Find product by ID
+  const product = await Product.findById(id);
 
-    const product = await Product.findById(id);
+  if (!product) throw new ApiError(404, "Product not found");
 
-    if ( !product ) throw new ApiError(404, "Product not found");
+  // Upload new photos to Cloudinary
+  const mainPhotoUpload = await uploadOnCloudinaryNotDelete(mainPhotoFile.path);
 
-    let newPhotos = [];
+  if (!mainPhotoUpload) throw new ApiError(500, "Error in uploading main photo");
+  
+  const mainPhoto = {
+      public_id: mainPhotoUpload.public_id,
+      url: mainPhotoUpload.url,
+  };
 
-    if ( photosLocalPath.length > 0 ) {
+  const subPhotos = await Promise.all(
+      subPhotosFiles.map(async (file) => {
+          const uploadPhoto = await uploadOnCloudinaryNotDelete(file.path);
+          if (!uploadPhoto) {
+              throw new ApiError(500, "Error in uploading sub-photos");
+          }
+          return { public_id: uploadPhoto.public_id, url: uploadPhoto.url };
+      })
+  );
 
-        newPhotos = await Promise.all(
+  // Update the product in the database
+  const updatedProduct = await Product.findByIdAndUpdate(
+      id,
+      {
+          $set: {
+              name,
+              price,
+              description,
+              category,
+              stock,
+              mainPhoto,
+              subPhotos,
+          },
+      },
+      { new: true }
+  );
 
-                photosLocalPath.map(async (path)=> {
-                    
-                    const uploadPhoto = await uploadOnCloudinaryNotDelete(path);
+  if (!updatedProduct) throw new ApiError(500, "Error in updating product");
+  
+  // Delete old photos from Cloudinary
+  const oldPhotoIds = [];
 
-                    if ( !uploadPhoto ) throw new ApiError(500, "Error in uploading photos");
+  if (product.mainPhoto?.public_id) oldPhotoIds.push(product.mainPhoto.public_id);
+  
+  if (product.subPhotos && Array.isArray(product.subPhotos)) {
+      product.subPhotos.forEach((photo) => {
+          if (photo.public_id) {
+              oldPhotoIds.push(photo.public_id);
+          }
+      });
+  }
 
-                    return { public_id: uploadPhoto.public_id, url: uploadPhoto.url };
-                })
-        );
+  await Promise.all(
+      oldPhotoIds.map(async (public_id) => {
+          await deleteOnCloudinary(public_id);
+      })
+  );
 
-        const oldPhotos = product.photos.map( photo => photo.public_id );
+  // Invalidate cache if necessary
+  invalidateCache({ product: true, productId: String(product._id), admin: true });
 
-        const updatedProduct = await Product.findByIdAndUpdate( id, {
-            $set: {
-                name,
-                price,
-                description,
-                category,
-                stock,
-                photos: newPhotos
-            }
-        }, { new: true });
-
-        if ( !updatedProduct ) throw new ApiError(500, "Error in updating product");
-
-        await Promise.all(oldPhotos.map( async ( public_id )=> {
-
-            await deleteOnCloudinary(public_id);
-
-        }));
-
-         invalidateCache({ product: true, productId: String(product._id),  admin: true, });
-        
-        return res.status(200).json(new ApiResponse(200, { updatedProduct }, "Product updated successfully"));
-
-    } else {
-            
-        throw new ApiError(400, " Error can't update product without photos");
-    }
-    
+  // Send response
+  return res.status(200).json(new ApiResponse(200, { updatedProduct }, "Product updated successfully"));
 });
 
-const deleteProduct = asyncHandlerPromise(async (req:Request, res:Response, next:NextFunction)=> {
 
-        const product = await Product.findById(req.params.id);
+const deleteProduct = asyncHandlerPromise(async (req: Request, res: Response, next: NextFunction) => {
 
-        if (!product) throw new ApiError(404, "Product not found");
+  const product = await Product.findById(req.params.id);
 
-        const photoIds = product.photos.map( photo => photo.public_id );
+  if (!product) {
+      throw new ApiError(404, "Product not found");
+  }
 
-        await Promise.all(photoIds.map( async ( public_id )=>{
+  // Collect all photo public IDs from mainPhoto and subPhotos
+  const photoIds = [];
 
-            await deleteOnCloudinary(public_id);
+  if (product.mainPhoto?.public_id) {
+      photoIds.push(product.mainPhoto.public_id);
+  }
 
-        }));
+  if (product.subPhotos && Array.isArray(product.subPhotos)) {
+      product.subPhotos.forEach((photo) => {
+          if (photo.public_id) {
+              photoIds.push(photo.public_id);
+          }
+      });
+  }
 
-        await product.deleteOne();
+  // Delete photos from Cloudinary
+  await Promise.all(photoIds.map(async (public_id) => {
+      await deleteOnCloudinary(public_id);
+  }));
 
-         invalidateCache({ product: true, productId: String(product._id) ,  admin: true,});
+  // Delete product from the database
+  await product.deleteOne();
 
-        return res.status(200).json(new ApiResponse(200, {}, "Product deleted successfully"));
+  // Invalidate cache if necessary
+  invalidateCache({ product: true, productId: String(product._id), admin: true });
 
+  // Send response
+  return res.status(200).json(new ApiResponse(200, {}, "Product deleted successfully"));
 });
+
 
 const getAllProducts = asyncHandlerPromise(async (req:Request<{}, {}, SearchRequestQuery>, res:Response, next:NextFunction)=> {
          
@@ -291,44 +359,42 @@ const getAllProducts = asyncHandlerPromise(async (req:Request<{}, {}, SearchRequ
 
 });
 
-const generateRandomProducts = async (count: number = 10): Promise<void> => {
-    const products = [];
+// const generateRandomProducts = async (count: number = 10): Promise<void> => {
+//     const products = [];
   
-    for (let i = 0; i < count; i++) {
-      const product = {
-        name: faker.commerce.productName(),
-        photo: "uploads\\5ee9c9d2-851d-4371-8a0b-7317016206e6.jpg",
-        price: faker.commerce.price({ min: 1500, max: 80000, dec: 0 }),
-        stock: faker.commerce.price({ min: 0, max: 100, dec: 0 }),
-        category: faker.commerce.department(),
-        description: faker.commerce.productDescription(), // Add description field
-        createdAt: new Date(faker.date.past()),
-        updatedAt: new Date(faker.date.recent()),
-        __v: 0,
-      };
+//     for (let i = 0; i < count; i++) {
+//       const product = {
+//         name: faker.commerce.productName(),
+//         photo: "uploads\\5ee9c9d2-851d-4371-8a0b-7317016206e6.jpg",
+//         price: faker.commerce.price({ min: 1500, max: 80000, dec: 0 }),
+//         stock: faker.commerce.price({ min: 0, max: 100, dec: 0 }),
+//         category: faker.commerce.department(),
+//         description: faker.commerce.productDescription(), // Add description field
+//         createdAt: new Date(faker.date.past()),
+//         updatedAt: new Date(faker.date.recent()),
+//         __v: 0,
+//       };
   
-      products.push(product);
-    }
+//       products.push(product);
+//     }
   
-    await Product.create(products);
+//     await Product.create(products);
   
-    console.log({ success: true });
-  };
+//     console.log({ success: true });
+//   };
 
-const deleteRandomsProducts = async (count: number = 10) => {
-  const products = await Product.find({}).skip(2);
+// const deleteRandomsProducts = async (count: number = 10) => {
+//   const products = await Product.find({}).skip(2);
 
-  for (let i = 0; i < products.length; i++) {
-    const product = products[i];
-    await product.deleteOne();
-  }
+//   for (let i = 0; i < products.length; i++) {
+//     const product = products[i];
+//     await product.deleteOne();
+//   }
 
-  console.log({ succecss: true });
-};
+//   console.log({ succecss: true });
+// };
 
-//generateRandomProducts(40);
-//deleteRandomsProducts(38);
+// //generateRandomProducts(40);
+// //deleteRandomsProducts(38);
 
-
-
-export { newProduct, getLatestProducts, getAllCategories, getAdminProducts, getSingleProduct, updateProduct, deleteProduct, getAllProducts };
+export { newProduct, checkFileComeOrNot, getLatestProducts, deleteProduct, getAllCategories, getAdminProducts, getAllProducts, getSingleProduct, updateProduct };

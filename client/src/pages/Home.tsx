@@ -6,7 +6,6 @@ import  { Skeleton } from '../components/Loader';
 
 const Home = () => {
   const { data, isLoading, isError } = useLatestProductsQuery("");
-  console.log(data);
   
   const addToCartHandler = () => {
     // Add to cart logic here
@@ -32,14 +31,8 @@ const Home = () => {
           {isLoading ? (
             <Skeleton />
           ) : (
-            data?.data?.latestProducts.map((i) => {
-              // Ensure `photos` is an array of objects with `url`
-              const photosArray = Array.isArray(i.photos)
-                ? i.photos
-                : typeof i.photos === 'string'
-                ? [{ url: i.photos }]
-                : [];
-
+            data?.data?.latestProducts.map((i : any) => {
+             
               return (
                 <ProductCard
                   key={i._id}
@@ -48,7 +41,7 @@ const Home = () => {
                   price={i.price}
                   stock={i.stock}
                   handler={addToCartHandler}
-                  photos={photosArray}
+                  mainPhoto={{ url: i.mainPhoto.url }}
                 />
               );
             })

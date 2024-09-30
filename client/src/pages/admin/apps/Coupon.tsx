@@ -9,10 +9,18 @@ const Coupon = () => {
       <main className="dashboard-app-container">
       <h1>Coupon</h1>
       <section>
-        <form>
+        <form className="coupon-form">
           <input />
           <input />
-          <fieldset></fieldset>
+          <fieldset>
+            <legend>Include</legend>
+            <input />
+            <span>Numbers</span>
+            <input />
+            <span>Characters</span>
+            <input />
+            <span>Symbols</span>
+          </fieldset>
           <button>Generate</button>
         </form>
       </section>

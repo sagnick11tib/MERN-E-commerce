@@ -1,10 +1,11 @@
 
-import { ReactElement, useState, useCallback } from 'react';
+import { ReactElement, useState, useCallback, act } from 'react';
 import AdminSidebar from '../../components/admin/AdminSidebar'
 import TableHOC from '../../components/admin/TableHOC'
 import { ColumnDef } from '@tanstack/react-table';
 import { Link } from 'react-router-dom';
 import { FaPlus } from 'react-icons/fa';
+import { useAllProductsQuery } from '../../redux/api/productAPI';
 
 interface DataType {
   photo: ReactElement;
@@ -116,11 +117,21 @@ const arr: DataType[] = [
 
 const Products = () => {
 
-  const [ data, setData ] = useState<DataType[]>(arr);
+  const { data } =  useAllProductsQuery("nothing22");
+
+  const [ data2, setData ] = useState<DataType[]>(arr);
+
+  console.log(data?.products?.map((i: { photos: string, name: string, price: number, stock: number, _id: string }) => ({
+    photo:<img src={i.photos} alt={i.name} />,
+    name: i.name,
+    price: i.price,
+    stock: i.stock,
+    action: <Link to={`/admin/product/${i._id}`}>Manage</Link>
+  })));
   
 const ProductTable = useCallback(TableHOC<DataType>(
   columns,
-  data,
+  data2,
   "dashboard-product-box",
   "Products",
   true

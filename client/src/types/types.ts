@@ -13,6 +13,7 @@ export interface Product {
     price: number;
     stock: number;
     category: string;
-    photos: string;
+    mainPhoto: string;
+    subPhotos?: string;
     _id: string;
 }

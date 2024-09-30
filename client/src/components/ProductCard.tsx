@@ -3,7 +3,8 @@ import { FaPlus } from 'react-icons/fa';
 
 type ProductsProps = {
     productId: string;
-    photos: {url: string}[]; //means photos is an array and it has an object with a key url
+    mainPhoto: {url: string}; //this means mainPhoto is an object with a url property
+    subPhotos?: string[];
     name: string;
     price: number;
     stock: number;
@@ -13,7 +14,7 @@ type ProductsProps = {
 const ProductCard = (
     {
     productId,
-    photos,
+    mainPhoto,
     name,
     price,
     stock,
@@ -22,7 +23,7 @@ const ProductCard = (
   return (
     <>
     <div className='product-card'>
-    <img src={photos[1]?.url} alt={name} />
+    <img src={mainPhoto.url} alt={name} />
     {/* <img src={`${server}/${photo}` }alt={name} /> */}
     <p>{name}</p>
     <span>₹{price}</span>

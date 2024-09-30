@@ -2,26 +2,24 @@ import { Router } from 'express';
 
 
 import { adminOnly } from '../middlewares/auth.middleware.js';
-import { productUpload } from '../middlewares/multer.middleware.js';
+import { fieldUpload } from '../middlewares/multer.middleware.js';
 
 const router = Router();
 
-import { newProduct, getLatestProducts, getAllCategories, getAdminProducts, getSingleProduct, updateProduct, deleteProduct, getAllProducts } from '../controllers/product.controllers.js';
+import { newProduct, checkFileComeOrNot, deleteProduct, getLatestProducts, getAllCategories, getAdminProducts, getAllProducts, getSingleProduct, updateProduct } from '../controllers/product.controllers.js';
 
 
+router.route("/new").post( adminOnly,fieldUpload.fields([{name: "mainPhoto",maxCount:1},{name:"subPhotos",maxCount:5}]), newProduct);
+router.route("/check").post(fieldUpload.fields([{name: "mainPhoto",maxCount:1},{name:"subPhotos",maxCount:5}]),checkFileComeOrNot);
+ router.route("/all").get(getAllProducts)
+ router.route("/latest").get(getLatestProducts)
+ router.route("/categories").get(getAllCategories)
+ router.route("/admin-products").get(adminOnly,getAdminProducts)
+ router.route("/:id").get(getSingleProduct).put(adminOnly,fieldUpload.fields([{name: "mainPhoto",maxCount:1},{name:"subPhotos",maxCount:5}]),updateProduct).delete(adminOnly,deleteProduct)
 
-
-router.route("/new").post( adminOnly,productUpload.array("photos", 5), newProduct);
-router.route("/all").get(getAllProducts)
-router.route("/latest").get(getLatestProducts)
-router.route("/categories").get(getAllCategories)
-router.route("/admin-products").get(adminOnly,getAdminProducts)
-
-router.route("/:id").get(getSingleProduct).put(adminOnly,productUpload.array("photos", 5),updateProduct).delete(adminOnly,deleteProduct)
-
-router.route("/reviews/:id").get()
-router.route("/review/new/:id").post()
-router.route("/review/:id").delete()
+// router.route("/reviews/:id").get()
+// router.route("/review/new/:id").post()
+// router.route("/review/:id").delete()
 
 
 // router.route("/random").get(generateRandomProducts)

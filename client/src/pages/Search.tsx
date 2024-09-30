@@ -167,10 +167,10 @@ const Search = () => {
           <ProductCard 
             productId='123456'
             name='Macbook'
-            price={129999}
+            price={12999}
             stock={20}
             handler={addToCartHandler}
-            photos={[{ url: "https://m.media-amazon.com/images/I/618d5bS2lUL._SX679_.jpg" }]}  // Wrap the photo URL in an array
+            mainPhoto={{ url: "https://m.media-amazon.com/images/I/618d5bS2lUL._SX679_.jpg" }}
           />
         </div>
         

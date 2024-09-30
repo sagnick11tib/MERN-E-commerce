@@ -2,15 +2,17 @@ import { stripe } from "./config/stripe.js";
 import NodeCache from "node-cache";
 import cors from "cors";
 import morgan from "morgan";
-export const nodeCache = new NodeCache();
+export const nodeCache = new NodeCache( //
+   
+);
 import express from "express";
 const app = express();
 
 
 app.use(cors());
 app.use(morgan("dev"));
-app.use(express.json({limit: "16kb"}))
-app.use(express.urlencoded({extended: true, limit: "16kb"}))
+app.use(express.json({limit: "50mb"}))
+app.use(express.urlencoded({extended: true,limit: "50mb"}))
 app.use(express.static("public")) // to serve static files means images, css, js files
 app.use("/uploads", express.static("uploads")) // to serve static files means images, css, js files
 
@@ -31,6 +33,11 @@ app.use("/api/v1/dashboard", dashboardRoutes);
 
 app.get("/", (_, res) => {
     res.send("API Working with /api/v1");
+  });
+
+  app.post("/api/v1/cache/clear", (req, res) => {
+    nodeCache.flushAll();
+    return res.json({ message: "Cache Cleared" });
   });
 
 

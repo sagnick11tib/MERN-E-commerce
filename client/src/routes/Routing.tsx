@@ -45,7 +45,7 @@ const Routing = ()=>{
 
 
  const { user } = useSelector((state: {userReducer :UserReducerInitialState})=> state.userReducer);
- console.log(user)
+ //console.log(user)
 
     return (
       <>
