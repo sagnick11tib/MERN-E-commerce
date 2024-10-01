@@ -1,11 +1,16 @@
 
-import { ReactElement, useState, useCallback, act } from 'react';
+import { ReactElement, useState, useCallback, act, useEffect } from 'react';
 import AdminSidebar from '../../components/admin/AdminSidebar'
 import TableHOC from '../../components/admin/TableHOC'
 import { ColumnDef } from '@tanstack/react-table';
 import { Link } from 'react-router-dom';
 import { FaPlus } from 'react-icons/fa';
 import { useAllProductsQuery } from '../../redux/api/productAPI';
+import toast from 'react-hot-toast';
+import { CustomError } from '../../types/api-types';
+import { useSelector } from 'react-redux';
+import { UserReducerInitialState } from '../../types/reducer-types';
+import { Skeleton } from '../../components/Loader';
 
 interface DataType {
   photo: ReactElement;
@@ -117,25 +122,36 @@ const arr: DataType[] = [
 
 const Products = () => {
 
-  const { data } =  useAllProductsQuery("nothing22");
+  const { user } = useSelector( (state: { userReducer:UserReducerInitialState }) => state.userReducer);
 
-  const [ data2, setData ] = useState<DataType[]>(arr);
+   const { data, isError, error, isLoading } =  useAllProductsQuery(user?._id!);
 
-  console.log(data?.products?.map((i: { photos: string, name: string, price: number, stock: number, _id: string }) => ({
-    photo:<img src={i.photos} alt={i.name} />,
-    name: i.name,
-    price: i.price,
-    stock: i.stock,
-    action: <Link to={`/admin/product/${i._id}`}>Manage</Link>
-  })));
+   console.log(data);
+
+  const [ rows, setRows ] = useState<DataType[]>([]);
+
+  if (isError) toast.error((error as CustomError).data.message);
+
+  useEffect(() =>{
+    if (data && data!.data!.products) {
+      setRows(data!.data!.products.map((i: any) => ({
+        photo: <img src={i.mainPhoto.url} alt={i.name} />, 
+        name: i.name, 
+        price: i.price, 
+        stock: i.stock, 
+        action: <Link to={`/admin/product/${i._id}`}>Manage</Link> 
+      })));
+    }
+  },[data])
   
-const ProductTable = useCallback(TableHOC<DataType>(
+  
+const ProductTable = TableHOC<DataType>(
   columns,
-  data2,
+  rows,
   "dashboard-product-box",
   "Products",
-  true
-),[]);
+  rows.length > 6
+)()
 
 
 
@@ -143,9 +159,7 @@ const ProductTable = useCallback(TableHOC<DataType>(
     <div className='admin-container'>
       <AdminSidebar />
       <main>
-        {
-          ProductTable()
-        }
+        {isLoading ? <Skeleton length={20} /> : ProductTable }
       </main>
       <Link to="/admin/product/new" className="create-product-btn">
         <FaPlus />

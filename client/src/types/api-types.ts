@@ -1,4 +1,13 @@
+
 import { Product, User } from "./types";
+
+export type CustomError = {
+    status: number;
+    data: {
+      message: string;
+      success: boolean;
+    };
+  };
 
 export type MessageResponse = {
     success: boolean;
@@ -15,12 +24,52 @@ export type UserResponse = {
     data: User;
 }
 
-
 export type latestProducts = {
     latestProducts: Product[];
 }
 
-export type AllProductsResponse = {
+export type LatestProductsResponse = {
     success: boolean;
     data: latestProducts | undefined;
 }
+
+export type allProducts = {
+    products: Product[];
+}
+
+export type AllProductsResponse = {
+    success: boolean;
+    data: allProducts | undefined;
+}
+
+export type ProductResponse = {
+    product: Product;
+}
+
+export type ProductDetailsResponse = {
+    success: boolean;
+    data: ProductResponse | undefined;
+}
+
+export type UpdateProductRequest = {
+    userId: string;
+    productId: string;
+    formData: FormData;//FormData is a built-in object in JavaScript that allows to send key-value pairs of data to the server
+}
+
+export type DeleteProductRequest = {
+    userId: string;
+    productId: string;
+}
+
+export type allCategories = {
+    categories: string[];
+}
+
+export type CategoriesResponse ={
+    success: boolean;
+    data: allCategories | undefined;
+}
+
+
+
