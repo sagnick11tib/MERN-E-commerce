@@ -347,9 +347,9 @@ const getAllProducts = asyncHandler(async (req:Request<{}, {}, SearchRequestQuer
 
     const totalPage = Math.ceil(filteredOnlyProduct.length / limit);
 
-    if ( products.length < 1 ) throw new ApiError(404, "No products found");
+    if ( products.length < 1 ) return res.status(201).json(new ApiResponse(201, { products, totalPage }, "No products found"));
 
-    if ( !products || !filteredOnlyProduct ) throw new ApiError(404, "No products found");
+    if ( !products || !filteredOnlyProduct ) return res.status(404).json(new ApiResponse(404, { products, totalPage }, "No products found according to the search query"));
 
     return res.status(200).json(new ApiResponse(200, { products, totalPage }, "Products fetched successfully"));
 

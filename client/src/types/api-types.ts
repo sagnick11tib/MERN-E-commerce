@@ -39,7 +39,10 @@ export type allProducts = {
 
 export type AllProductsResponse = {
     success: boolean;
-    data: allProducts | undefined;
+    data: {
+        products: Product[];
+        totalPage: number;
+    }
 }
 
 export type ProductResponse = {
