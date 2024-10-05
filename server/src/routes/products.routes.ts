@@ -17,6 +17,7 @@ router.route("/check").post(fieldUpload.fields([{name: "mainPhoto",maxCount:1},{
  router.route("/admin-products").get(adminOnly,getAdminProducts)
  router.route("/:id").get(getSingleProduct).put(adminOnly,fieldUpload.fields([{name: "mainPhoto",maxCount:1},{name:"subPhotos",maxCount:5}]),updateProduct).delete(adminOnly,deleteProduct)
 
+
 // router.route("/reviews/:id").get()
 // router.route("/review/new/:id").post()
 // router.route("/review/:id").delete()

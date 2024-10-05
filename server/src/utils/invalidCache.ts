@@ -1,6 +1,4 @@
 import { nodeCache } from "../app.js";
-import { Order } from "../models/order.models.js";
-import { Product } from "../models/product.models.js";
 import { InvalidateCacheProps } from "../types/types.js"
 
 export const invalidateCache = ({ 

@@ -1,11 +1,11 @@
 import { Coupon } from "../models/coupon.models.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-import { asyncHandlerPromise } from "../utils/asyncHandler.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 import { stripe } from "../config/stripe.js";
 
 
-const createPaymentIntent = asyncHandlerPromise(async (req, res)=>{
+const createPaymentIntent = asyncHandler(async (req, res)=>{
     
     const { amount } = req.body;
     
@@ -22,7 +22,7 @@ const createPaymentIntent = asyncHandlerPromise(async (req, res)=>{
                .json(new ApiResponse(201, { clientSecret: paymentIntent.client_secret }, "Payment intent created successfully"));
 
 });
-const newCoupon = asyncHandlerPromise(async (req, res)=>{
+const newCoupon = asyncHandler(async (req, res)=>{
 
     const { coupon, amount } = req.body;
 
@@ -32,7 +32,7 @@ const newCoupon = asyncHandlerPromise(async (req, res)=>{
 
     return res.status(201).json(new ApiResponse(201, { createdCoupon },`Coupon ${createdCoupon.code} created successfully`));
 });
-const applyDiscount = asyncHandlerPromise(async (req, res)=>{
+const applyDiscount = asyncHandler(async (req, res)=>{
 
     const { coupon } = req.query;
 
@@ -45,7 +45,7 @@ const applyDiscount = asyncHandlerPromise(async (req, res)=>{
     return res.status(200).json(new ApiResponse(200, { discount }, `Coupon ${discount.code} applied successfully`));
 
 });
-const allCoupons = asyncHandlerPromise(async (req, res)=>{
+const allCoupons = asyncHandler(async (req, res)=>{
 
     const coupon = await Coupon.find({});
 
@@ -54,7 +54,7 @@ const allCoupons = asyncHandlerPromise(async (req, res)=>{
     return res.status(200).json(new ApiResponse(200, { coupon }, `All coupons fetched successfully`));
 
 });
-const getCoupon = asyncHandlerPromise(async (req, res)=>{
+const getCoupon = asyncHandler(async (req, res)=>{
 
     const { id } = req.params;
 
@@ -66,7 +66,7 @@ const getCoupon = asyncHandlerPromise(async (req, res)=>{
 
     return res.status(200).json(new ApiResponse(200, { coupon }, `Coupon ${coupon.code} fetched successfully`));
 });
-const updateCoupon = asyncHandlerPromise(async (req, res)=>{
+const updateCoupon = asyncHandler(async (req, res)=>{
 
     const { id } = req.params;
 
@@ -80,7 +80,7 @@ const updateCoupon = asyncHandlerPromise(async (req, res)=>{
 
     return res.status(200).json(new ApiResponse(200, { updatedCoupon }, `Coupon ${updatedCoupon.code} updated successfully`));
 });
-const deleteCoupon = asyncHandlerPromise(async (req, res)=>{
+const deleteCoupon = asyncHandler(async (req, res)=>{
 
     const { id } = req.params;
 

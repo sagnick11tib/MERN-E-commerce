@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { asyncHandlerPromise } from "../utils/asyncHandler.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { Order } from "../models/order.models.js";
@@ -10,7 +10,7 @@ import { nodeCache } from "../app.js";
 
 
 
-const newOrder = asyncHandlerPromise(async (req: Request<{}, {}, NewOrderRequestBody>, res, next)=> {
+const newOrder = asyncHandler(async (req: Request<{}, {}, NewOrderRequestBody>, res, next)=> {
 
     const { shippingInfo, orderItems, user, subTotal, tax, shippingCharges, discount, total, status } = req.body;
 
@@ -37,7 +37,7 @@ const newOrder = asyncHandlerPromise(async (req: Request<{}, {}, NewOrderRequest
 
 });
 
-const myOrders = asyncHandlerPromise(async (req, res)=> {
+const myOrders = asyncHandler(async (req, res)=> {
 
     const { id: user } = req.query;
 
@@ -54,7 +54,7 @@ const myOrders = asyncHandlerPromise(async (req, res)=> {
 
 });
 
-const allOrder = asyncHandlerPromise(async (req, res)=> {
+const allOrder = asyncHandler(async (req, res)=> {
 
     const key = `all-order`;
 
@@ -69,7 +69,7 @@ const allOrder = asyncHandlerPromise(async (req, res)=> {
 
 });
 
-const getSingleOrder = asyncHandlerPromise(async (req,res)=> {
+const getSingleOrder = asyncHandler(async (req,res)=> {
 
     const { id } = req.params;
 
@@ -89,7 +89,7 @@ const getSingleOrder = asyncHandlerPromise(async (req,res)=> {
                     .json(new ApiResponse(201, { order }, "Single order fetched Succesfully"))
 });
 
-const processOrder = asyncHandlerPromise(async (req,res)=> {
+const processOrder = asyncHandler(async (req,res)=> {
 
     const { id } = req.params;
 
@@ -120,7 +120,7 @@ const processOrder = asyncHandlerPromise(async (req,res)=> {
 
 });
 
-const deleteOrder = asyncHandlerPromise(async (req,res)=> {
+const deleteOrder = asyncHandler(async (req,res)=> {
 
     const { id } = req.params;
 

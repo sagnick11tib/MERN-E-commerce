@@ -10,7 +10,6 @@ cloudinary.config({
 
 // Define the type for the upload function's response
 interface CloudinaryUploadResponse extends UploadApiResponse {
-
 }
 
 // Function to upload a file to Cloudinary

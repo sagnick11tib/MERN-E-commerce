@@ -102,21 +102,37 @@
 
 import { useState } from "react";
 import ProductCard from "../components/ProductCard";
-import { useCategoriesQuery } from "../redux/api/productAPI";
+import { useCategoriesQuery, useSearchProductsQuery } from "../redux/api/productAPI";
 import toast from "react-hot-toast";
 import { CustomError } from "../types/api-types";
+import { Skeleton } from "../components/Loader";
 
 const Search = () => {
 
+  
   const { data: categoriesResponse, isLoading: loadingCategories, isError, error } = useCategoriesQuery("");
 
-
+  
 
   const [search, setSearch] = useState<string>('');
   const [sort, setSort] = useState<string>('');
   const [maxPrice, setMaxPrice] = useState<number>(100000);
   const [category, setCategory] = useState<string>('');
   const [page, setPage] = useState<number>(1);
+
+  const { data: searchedData, isLoading: productLoading } = useSearchProductsQuery({ 
+                                            price: maxPrice, 
+                                            search, 
+                                            sort, 
+                                            category, 
+                                            page
+                                           });
+
+                                           //console.log(searchedData);
+                                           
+
+
+  const noProductsFound = searchedData?.data?.products.length === 0; // If no products are found, this will be true
 
   const addToCartHandler = () => {}
   const isPrevPage = page > 1;
@@ -132,7 +148,7 @@ const Search = () => {
           <h4>Sort</h4>
           <select 
             value={sort}
-            onChange={e => setSort(e.target.value)}
+            onChange={e => setSort(e.target.value)} // e.target.value is the value of the selected option = asc or dsc
           >
             <option value="">None</option>
             <option value="asc">Price (Low to High)</option>
@@ -176,7 +192,33 @@ const Search = () => {
           onChange={e => setSearch(e.target.value)}
         />
 
-        <div>
+        {
+          productLoading ? ( <Skeleton length={10} /> ) : (
+            <div className="search-product-list">
+              {
+                noProductsFound ? (
+                  <div className="no-products-found">
+                  No products found within the price range of {maxPrice}.
+                  </div>
+                ):(
+                searchedData?.data?.products.map((i: any) => (
+                  <ProductCard 
+                    key={i._id}
+                    productId={i._id}
+                    name={i.name}
+                    price={i.price}
+                    stock={i.stock}
+                    handler={addToCartHandler}
+                    mainPhoto={{ url: i.mainPhoto.url}}
+                  />
+                ))
+              )
+              }
+            </div>
+          )
+        }
+
+        {/* <div>
           <ProductCard 
             productId='123456'
             name='Macbook'
@@ -185,7 +227,27 @@ const Search = () => {
             handler={addToCartHandler}
             mainPhoto={{ url: "https://m.media-amazon.com/images/I/618d5bS2lUL._SX679_.jpg" }}
           />
-        </div>
+        </div> */}
+
+        {/* {
+          searchedData && searchedData.totalPage > 1 && (
+            <article>
+              <button 
+                disabled={!isPrevPage} 
+                onClick={() => setPage((prev) => prev - 1)}
+              >
+                Prev
+              </button>
+              <span>{page} of {searchedData.totalPage}</span>
+              <button 
+                disabled={!isNextPage} 
+                onClick={() => setPage((prev) => prev + 1)}
+              >
+                Next
+              </button>
+            </article>
+          )
+        } */}
         
         <article>
           <button 
@@ -194,7 +256,7 @@ const Search = () => {
           >
             Prev
           </button>
-          <span>{page} of {4}</span>
+          <span>{page} of {searchedData?.totalPage}</span>
           <button 
             disabled={!isNextPage} 
             onClick={() => setPage((prev) => prev + 1)}

@@ -1,7 +1,7 @@
 import { User } from '../models/user.models.js';
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
-import { asyncHandler, asyncHandlerPromise } from '../utils/asyncHandler.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
 import { NextFunction, Request, Response } from 'express';
 
 const adminOnly = asyncHandler(async (req:Request,

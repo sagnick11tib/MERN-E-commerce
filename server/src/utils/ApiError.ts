@@ -1,3 +1,4 @@
+
 class ApiError extends Error {
     statusCode: number;
     data: any;
@@ -10,6 +11,7 @@ class ApiError extends Error {
         errors: any[] = [],
         stack: string = ""
     ){
+        
         super(message)
         this.statusCode = statusCode
         this.data = null

@@ -6,6 +6,7 @@ export const nodeCache = new NodeCache( //
    
 );
 import express from "express";
+import errorHandler from "./middlewares/error.middlewares.js";
 const app = express();
 
 
@@ -15,6 +16,7 @@ app.use(express.json({limit: "50mb"}))
 app.use(express.urlencoded({extended: true,limit: "50mb"}))
 app.use(express.static("public")) // to serve static files means images, css, js files
 app.use("/uploads", express.static("uploads")) // to serve static files means images, css, js files
+//app.use(errorHandler);
 
 //routes import 
 import userRoutes from "./routes/user.routes.js";
@@ -22,6 +24,8 @@ import productRoutes from "./routes/products.routes.js";
 import orderRoutes from "./routes/order.routes.js";
 import paymentRoutes from "./routes/payment.routes.js"
 import dashboardRoutes from "./routes/stats.routes.js";
+import { ApiError } from "./utils/ApiError.js";
+import { asyncHandler } from "./utils/asyncHandler.js";
 
 //routes declaration
 app.use("/api/v1/user", userRoutes);
@@ -39,6 +43,10 @@ app.get("/", (_, res) => {
     nodeCache.flushAll();
     return res.json({ message: "Cache Cleared" });
   });
+
+  app.get("/api/v1/test", asyncHandler(async (req, res) => {
+     throw new ApiError(404, "Not Found");
+  }));
 
 
 

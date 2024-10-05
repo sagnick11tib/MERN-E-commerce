@@ -1,4 +1,4 @@
-import { asyncHandler, asyncHandlerPromise } from "../utils/asyncHandler.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from "../models/user.models.js";
@@ -69,7 +69,7 @@ const getAllUsers = asyncHandler(async (
                                        }
 );
 
-const getUser = asyncHandlerPromise(async (
+const getUser = asyncHandler(async (
                                      req: Request,
                                      res: Response
                                    )=>{ 
@@ -84,7 +84,7 @@ const getUser = asyncHandlerPromise(async (
                                         return res.status(200).json(new ApiResponse(200, user, "User fetched successfully"))
 });
 
-const deleteUser = asyncHandlerPromise(async (
+const deleteUser = asyncHandler(async (
                                         req: Request,
                                         res: Response
                                       )=>{

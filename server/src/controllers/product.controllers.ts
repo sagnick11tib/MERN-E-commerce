@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { asyncHandlerPromise } from "../utils/asyncHandler.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { BaseQuery, NewProductRequestBody, SearchRequestQuery } from "../types/types.js";
@@ -11,7 +11,7 @@ import { nodeCache } from "../app.js";
 import { invalidateCache } from "../utils/invalidCache.js";
 
 
-const newProduct = asyncHandlerPromise(async (req: Request<{}, {}, NewProductRequestBody>, res: Response, next: NextFunction) => {
+const newProduct = asyncHandler(async (req: Request<{}, {}, NewProductRequestBody>, res: Response) => {
 
   // Explicitly type `req.files` to ensure TypeScript knows the expected structure
   const files = req.files as { [fieldname: string]: Express.Multer.File[] };
@@ -90,14 +90,12 @@ const newProduct = asyncHandlerPromise(async (req: Request<{}, {}, NewProductReq
   return res.status(201).json(new ApiResponse(201, { product }, "Product created successfully"));
 });
 
-const checkFileComeOrNot = asyncHandlerPromise(async (req: Request, res: Response, next: NextFunction) => {
+const checkFileComeOrNot = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     console.log(req.files)
     return res.status(200).json(new ApiResponse(200, { message: "File received" }, "File received successfully"));
 });
 
-
-
-const getLatestProducts = asyncHandlerPromise(async (req: Request, res: Response, next: NextFunction) => {
+const getLatestProducts = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     ///Revalidate on New , update or delete of product & on new Order
 
     let latestProducts;
@@ -119,7 +117,7 @@ const getLatestProducts = asyncHandlerPromise(async (req: Request, res: Response
 
 });
 
-const getAllCategories = asyncHandlerPromise(async (req:Request, res:Response, next:NextFunction)=> {
+const getAllCategories = asyncHandler(async (req:Request, res:Response, next:NextFunction)=> {
 
     let categories;
 
@@ -138,7 +136,7 @@ const getAllCategories = asyncHandlerPromise(async (req:Request, res:Response, n
 
 });
 
-const getAdminProducts = asyncHandlerPromise(async (req:Request, res:Response, next:NextFunction)=> {
+const getAdminProducts = asyncHandler(async (req:Request, res:Response, next:NextFunction)=> {
 
     let products;
 
@@ -154,7 +152,7 @@ const getAdminProducts = asyncHandlerPromise(async (req:Request, res:Response, n
     return res.status(200).json(new ApiResponse(200, { products }, "Products fetched successfully"));
 });
 
-const getSingleProduct = asyncHandlerPromise(async (req:Request, res:Response)=> {
+const getSingleProduct = asyncHandler(async (req:Request, res:Response)=> {
 
     const id = req.params.id;
 
@@ -176,7 +174,7 @@ const getSingleProduct = asyncHandlerPromise(async (req:Request, res:Response)=>
     return res.status(200).json(new ApiResponse(200, { product }, "Product fetched successfully"));
 });
 
-const updateProduct = asyncHandlerPromise(async (req: Request, res: Response, next: NextFunction) => {
+const updateProduct = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
 
   const { id } = req.params;
 
@@ -268,8 +266,7 @@ const updateProduct = asyncHandlerPromise(async (req: Request, res: Response, ne
   return res.status(200).json(new ApiResponse(200, { updatedProduct }, "Product updated successfully"));
 });
 
-
-const deleteProduct = asyncHandlerPromise(async (req: Request, res: Response, next: NextFunction) => {
+const deleteProduct = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
 
   const product = await Product.findById(req.params.id);
 
@@ -307,9 +304,8 @@ const deleteProduct = asyncHandlerPromise(async (req: Request, res: Response, ne
   return res.status(200).json(new ApiResponse(200, {}, "Product deleted successfully"));
 });
 
+const getAllProducts = asyncHandler(async (req:Request<{}, {}, SearchRequestQuery>, res:Response)=> {
 
-const getAllProducts = asyncHandlerPromise(async (req:Request<{}, {}, SearchRequestQuery>, res:Response, next:NextFunction)=> {
-         
     const {search, sort, category, price} = req.query;
 
     const page = Number(req.query.page) || 1;

@@ -1,4 +1,4 @@
-import { asyncHandlerPromise } from "../utils/asyncHandler.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from "../models/user.models.js"
@@ -9,7 +9,7 @@ import { calculatePercentage, getCategories, getChartData } from "../utils/featu
 
 
 
-const getDashboardStats = asyncHandlerPromise(async (req,res)=>{
+const getDashboardStats = asyncHandler(async (req,res)=>{
 
     let stats = {};
 
@@ -190,7 +190,7 @@ const getDashboardStats = asyncHandlerPromise(async (req,res)=>{
     return res.status(200).json(new ApiResponse(200,stats,"Dashboard stats fetched successfully"));
 });
 
-const getPieCharts = asyncHandlerPromise(async (req,res)=>{
+const getPieCharts = asyncHandler(async (req,res)=>{
 
     let charts: Record<string, any> = {};
 
@@ -295,7 +295,7 @@ const getPieCharts = asyncHandlerPromise(async (req,res)=>{
     return res.status(200).json(new ApiResponse(200,charts,"Pie charts fetched successfully"));
 });
 
-const getBarCharts = asyncHandlerPromise(async (req,res)=>{
+const getBarCharts = asyncHandler(async (req,res)=>{
     let charts: Record<string, any> = {};
     const key = "admin-bar-charts";
     if(nodeCache.has(key)) charts = JSON.parse(nodeCache.get(key) as string);
@@ -356,7 +356,7 @@ const getBarCharts = asyncHandlerPromise(async (req,res)=>{
 
 });
 
-const getLineCharts = asyncHandlerPromise(async (req,res)=>{
+const getLineCharts = asyncHandler(async (req,res)=>{
     
     let charts: Record<string, any> = {};
 

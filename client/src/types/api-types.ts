@@ -71,5 +71,18 @@ export type CategoriesResponse ={
     data: allCategories | undefined;
 }
 
+export type SearchProductsResponse = AllProductsResponse & {
+    totalPage: number;
+}
+
+export type SearchProductsRequest = {
+    price: number;
+    page: number;
+    category: string;
+    search: string;
+    sort: string;
+}
+
+
 
 
