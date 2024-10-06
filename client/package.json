@@ -12,6 +12,7 @@
   "dependencies": {
     "@reduxjs/toolkit": "^2.2.7",
     "@tanstack/react-table": "^8.20.5",
+    "6pp": "^1.2.16",
     "axios": "^1.7.7",
     "chart.js": "^4.4.3",
     "firebase": "^10.12.4",

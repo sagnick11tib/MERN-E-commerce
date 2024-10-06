@@ -70,5 +70,18 @@ const uploadImageUrlOnCloudinary = async (imageUrl: string): Promise<CloudinaryU
   }
 };
 
+const uploadBase64Image = async (base64Image: string): Promise<CloudinaryUploadResponse | null> => {
+  try {
+    const response = await cloudinary.uploader.upload(base64Image, {
+      resource_type: "auto", // Automatically determine the resource type
+    });
+    return response;
+  } catch (error) {
+    console.error("Error uploading base64 image:", error); // Log the error for debugging
+    return null;
+  }
+};
 
-export { uploadOnCloudinary, uploadOnCloudinaryNotDelete, deleteOnCloudinary, uploadImageUrlOnCloudinary };
+
+
+export { uploadOnCloudinary, uploadOnCloudinaryNotDelete, deleteOnCloudinary, uploadImageUrlOnCloudinary, uploadBase64Image };

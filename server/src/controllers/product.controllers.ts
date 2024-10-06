@@ -3,7 +3,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { BaseQuery, NewProductRequestBody, SearchRequestQuery } from "../types/types.js";
-import { uploadOnCloudinary, uploadOnCloudinaryNotDelete, deleteOnCloudinary } from "../utils/cloudinary.js";
+import { uploadOnCloudinary, uploadOnCloudinaryNotDelete, deleteOnCloudinary, uploadBase64Image } from "../utils/cloudinary.js";
 import { Product } from "../models/product.models.js";
 import { rm } from "fs";
 import { faker } from "@faker-js/faker";
@@ -11,6 +11,100 @@ import { nodeCache } from "../app.js";
 import { invalidateCache } from "../utils/invalidCache.js";
 
 
+
+// const newProduct = asyncHandler(async (req: Request<{}, {}, NewProductRequestBody>, res: Response) => {
+//     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+
+//     const { name, price, description, category, stock } = req.body;
+
+//     // Validate form fields
+//     if (!name || !price || !description || !category || !stock) {
+//         // Delete uploaded files if fields are missing
+//         if (files?.['mainPhoto'] && files['mainPhoto'].length > 0) {
+//             await deleteOnCloudinary(files['mainPhoto'][0].path);
+//         }
+//         if (files?.['subPhotos'] && files['subPhotos'].length > 0) {
+//             for (const file of files['subPhotos']) {
+//                 await deleteOnCloudinary(file.path);
+//             }
+//         }
+//         throw new ApiError(400, "Please fill all fields");
+//     }
+
+//     // Ensure mainPhoto is provided
+//     if (!files?.['mainPhoto'] || files['mainPhoto'].length < 1) {
+//         throw new ApiError(400, "Please upload a main photo");
+//     }
+
+//     // Ensure at least one sub-photo is uploaded
+//     if (!files?.['subPhotos'] || files['subPhotos'].length < 1) {
+//         throw new ApiError(400, "Please upload at least one sub-photo");
+//     }
+
+//     // Limit to max 5 sub-photos
+//     if (files['subPhotos'].length > 5) {
+//         throw new ApiError(400, "Please upload a maximum of 5 sub-photos");
+//     }
+
+//     // Function to upload image
+//     const uploadImage = async (image: any) => {
+//         if (image.startsWith('data:image/')) {
+//             // Handle base64 image
+//             const base64Image = image.split(';base64,').pop();
+//             return await uploadBase64Image(base64Image); // Implement this function to upload base64 image
+//         } else {
+//             // Handle file upload
+//             return await uploadOnCloudinaryNotDelete(image.path);
+//         }
+//     };
+
+//     // Upload main photo
+//     const mainPhotoUpload = await uploadImage(files['mainPhoto'][0].path || files['mainPhoto'][0]);
+//     if (!mainPhotoUpload) {
+//         throw new ApiError(500, "Error in uploading main photo");
+//     }
+
+//     const mainPhoto = {
+//         public_id: mainPhotoUpload.public_id,
+//         url: mainPhotoUpload.url,
+//     };
+
+//     // Upload sub-photos
+//     const subPhotos = await Promise.all(
+//         files['subPhotos'].map(async (file) => {
+//             return await uploadImage(file.path || file);
+//         })
+//     );
+
+//     // Create product in the database
+//     const product = await Product.create({
+//         name,
+//         price,
+//         description,
+//         category,
+//         stock,
+//         mainPhoto,
+//         subPhotos,
+//     });
+
+//     if (!product) {
+//         throw new ApiError(500, "Error in creating product");
+//     }
+
+//     // Invalidate cache if necessary
+//     invalidateCache({ product: true, admin: true });
+
+//     // Send response
+//     return res.status(201).json(new ApiResponse(201, { product }, "Product created successfully"));
+// });
+
+
+const checkFileComeOrNot = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    console.log(req.files)
+    return res.status(200).json(new ApiResponse(200, { message: "File received" }, "File received successfully"));
+});
+
+//old wala
 const newProduct = asyncHandler(async (req: Request<{}, {}, NewProductRequestBody>, res: Response) => {
 
   // Explicitly type `req.files` to ensure TypeScript knows the expected structure
@@ -90,10 +184,7 @@ const newProduct = asyncHandler(async (req: Request<{}, {}, NewProductRequestBod
   return res.status(201).json(new ApiResponse(201, { product }, "Product created successfully"));
 });
 
-const checkFileComeOrNot = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    console.log(req.files)
-    return res.status(200).json(new ApiResponse(200, { message: "File received" }, "File received successfully"));
-});
+
 
 const getLatestProducts = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     ///Revalidate on New , update or delete of product & on new Order
