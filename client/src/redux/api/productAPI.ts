@@ -58,8 +58,7 @@ export const productAPI = createApi({
                 body: formData,
             }),
             invalidatesTags: ["product"]
-        })
-        
+        }),
     })
 });
 

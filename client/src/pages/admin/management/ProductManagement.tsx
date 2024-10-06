@@ -1,107 +1,149 @@
-import { ChangeEvent, FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import AdminSidebar from "../../../components/admin/AdminSidebar"
 import { FaTrash } from "react-icons/fa";
 import { useSelector } from "react-redux";
 import { UserReducerInitialState } from "../../../types/reducer-types";
 import { useProductDetailsQuery, useUpdateProductMutation, useDeleteProductMutation } from "../../../redux/api/productAPI";
-import { useNavigation, useParams } from "react-router-dom";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
+import { useFileHandler } from "6pp";
+import { responseToast } from "../../../utils/features";
+import { Skeleton } from "../../../components/Loader";
 //import { useForm, SubmitHandler } from "react-hook-form"
 
 const ProductManagement = () => {
 
-  // const { user }  = useSelector((state: {userReducer: UserReducerInitialState}) => state.userReducer);
+   const { user }  = useSelector((state: {userReducer: UserReducerInitialState}) => state.userReducer);
 
-  // const params = useParams();
-  // const navigate = useNavigation();
+   const params = useParams(); //it is used to get the id from the url
+   const navigate = useNavigate(); // it is used to navigate to different pages
 
-  // const { data, isLoading, isError } = useProductDetailsQuery(params.id!);
+   const { data, isLoading, isError } = useProductDetailsQuery(params.id!); 
 
-  // const { price, mainPhoto, name, stock, category, description } =
-  //  data!.data!.product || {
-  //   price: 0,
-  //   mainPhoto: "",
-  //   name: "",
-  //   stock: 0,
-  //   category: "",
-  //   description: ""
-  // };
+  const { price, mainPhoto, name, stock, category, description }: any =
+   data?.data!.product || {
+    price: 0,
+    mainPhoto: "",
+    name: "",
+    stock: 0,
+    category: "",
+    description: ""
+  };
 
-  // const [ buttonLoading, setButtonLoading ] = useState<boolean>(false);
-  // const [ priceUpdate, setPriceUpdate ] = useState<number>(price);
-  // const [ stockUpdate, setStockUpdate ] = useState<number>(stock);
-  // const [ nameUpdate, setNameUpdate ] = useState<string>(name);
-  // const [ categoryUpdate, setCategoryUpdate ] = useState<string>(category);
-  // const [ descriptionUpdate, setDescriptionUpdate ] = useState<string>(description);
+  const [ buttonLoading, setButtonLoading ] = useState<boolean>(false);
+  const [ priceUpdate, setPriceUpdate ] = useState<number>(price);
+  const [ stockUpdate, setStockUpdate ] = useState<number>(stock);
+  const [ nameUpdate, setNameUpdate ] = useState<string>(name);
+  const [ categoryUpdate, setCategoryUpdate ] = useState<string>(category);
+  const [ descriptionUpdate, setDescriptionUpdate ] = useState<string>(description);
 
-  // const [ updateProduct ] = useUpdateProductMutation();
-  // const [ deleteProduct ] = useDeleteProductMutation();
+  const [ updateProduct ] = useUpdateProductMutation();
+  const [ deleteProduct ] = useDeleteProductMutation();
+
+  const mainPhotoFile = useFileHandler("single",5,1);
+
+  const subPhotosFiles = useFileHandler("multiple",5,5);
+
+  const submitHandler = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setButtonLoading(true);
+    try {
+      const formData = new FormData();
+  
+      // Check which fields have changed and append only those to formData
+      if (nameUpdate !== name) formData.set("name", nameUpdate); 
+      if (descriptionUpdate !== description) formData.set("description", descriptionUpdate);
+      if (priceUpdate !== price) formData.set("price", priceUpdate.toString());
+      if (stockUpdate !== stock) formData.set("stock", stockUpdate.toString());
+      if (categoryUpdate !== category) formData.set("category", categoryUpdate);
+  
+      // Append files if they are selected
+      if (mainPhotoFile.file) {
+        formData.append("mainPhoto", mainPhotoFile.file);
+      }
+      if (subPhotosFiles.file && subPhotosFiles.file.length > 0) {
+        subPhotosFiles.file.forEach((file) => {
+          formData.append("subPhotos", file);
+        });
+      }
+  
+      const res = await updateProduct({
+        formData,
+        userId: user?._id!,
+        productId: data?.data?.product._id!
+      });
+  
+      responseToast(res, navigate, "/admin/product");
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setButtonLoading(false);
+    }
+  };
 
   // const submitHandler = async (e: FormEvent<HTMLFormElement>) => {
   //   e.preventDefault();
   //   setButtonLoading(true);
   //   try {
-  //     const formData = new FormData(); //formdata is a 
+  //     const formData = new FormData();
 
-  //     if(nameUpdate) formData.set("name", nameUpdate);
-  //     if(descriptionUpdate) formData.set("description", descriptionUpdate);
-  //     if(priceUpdate) formData.set("price", priceUpdate.toString());
-  //     if(stockUpdate !== undefined) formData.set("stock", stockUpdate.toString());
-  //     if(categoryUpdate) formData.set("category", categoryUpdate);
-
+  //     if (nameUpdate) formData.set("name", nameUpdate); 
+  //     if (descriptionUpdate) formData.set("description", descriptionUpdate);
+  //     if (priceUpdate) formData.set("price", priceUpdate.toString());
+  //     if (stockUpdate !== undefined) formData.set("stock", stockUpdate.toString());
+  //     if (categoryUpdate) formData.set("category", categoryUpdate);
+  //     if (mainPhotoFile.file ) formData.append("mainPhoto", mainPhotoFile.file);
+  //     if (subPhotosFiles.file && subPhotosFiles.file.length > 0) {
+  //       subPhotosFiles.file.forEach((file) => {
+  //         formData.append("subPhotos", file);
+  //       });
+  //     }
   //     const res = await updateProduct({
   //       formData,
   //       userId: user?._id!,
-  //       productId: data?.data?.product._id!,
+  //       productId: data?.data?.product._id!
   //     });
 
-      
+  //     responseToast(res, navigate, "/admin/product");
   //   } catch (error) {
   //     console.log(error);
   //   } finally {
   //     setButtonLoading(false);
   //   }
-  // }
+  // };
 
-  const image: string = "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-  const [name, setName] = useState<string>("Puma Shoes");
-  const [price, setPrice] = useState<number>(1000);
-  const [stock, setStock] = useState<number>(1);
-  const [photo, setPhoto] = useState<string>(image);
+  const deleteHandler = async () => {
+    const res = await deleteProduct({
+      userId: user?._id!,
+      productId: data?.data?.product._id!
+    });
 
-  const [nameUpdate, setNameUpdate] = useState<string>(name);
-  const [priceUpdate, setPriceUpdate] = useState<number>(price);
-  const [stockUpdate, setStockUpdate] = useState<number>(stock);
-  const [photoUpdate, setPhotoUpdate] = useState<string>(photo);
+    responseToast(res, navigate, "/admin/product");
+  };
 
-  const changeImageHandler = (e: ChangeEvent<HTMLInputElement>) => {
-    const file: File | undefined = e.target.files?.[0];
-    const reader: FileReader = new FileReader();
-    if (file) {
-      reader.readAsDataURL(file);
-      reader.onloadend = () => {
-        if(typeof reader.result === "string") setPhotoUpdate(reader.result);
+  useEffect(() => {
+    if (data) {
+      setNameUpdate(data?.data!.product.name);
+      setPriceUpdate(data?.data!.product.price);
+      setStockUpdate(data?.data!.product.stock);
+      setCategoryUpdate(data?.data!.product.category);
+      setDescriptionUpdate(data?.data!.product.description);
     }
-    
-  }
-}
+  }, [data]);
 
-const SubmitHandler = (e: FormEvent<HTMLFormElement>) =>{
-  e.preventDefault();
-  setName(nameUpdate);
-  setPrice(priceUpdate);
-  setStock(stockUpdate);
-  setPhoto(photoUpdate);
-}
-
+  if (isError) return <Navigate to={"/404"} />;
 
   return (
     <>
     <div className="admin-container">
       <AdminSidebar />
       <main className="product-management">
+      {isLoading ? (
+          <Skeleton length={20} />
+        ) : (
+          <>
         <section>
-        <strong>ID - 99 </strong>
-        <img src={photo} alt="Product" />
+        <strong>ID - {data?.data?.product._id} </strong>
+        <img src={mainPhoto.url} alt="Product" />
               <p>{name}</p>
               {stock > 0 ? (
                 <span className="green">{stock} Available</span>
@@ -111,15 +153,15 @@ const SubmitHandler = (e: FormEvent<HTMLFormElement>) =>{
               <h3>₹{price}</h3>
         </section>
         <article>
-        <button className="product-delete-btn" >
+        <button className="product-delete-btn" onClick={deleteHandler} >
                 <FaTrash />
               </button>
-          <form onSubmit={SubmitHandler}>
+          <form onSubmit={submitHandler}>
             <h2>Manage</h2>
             <div>
               <label>Name</label>
               <input
-              required
+              
               type="text"
               placeholder="Name"
               value={nameUpdate}
@@ -130,7 +172,7 @@ const SubmitHandler = (e: FormEvent<HTMLFormElement>) =>{
             <div>
               <label>Price</label>
               <input
-              required
+              
               type="number"
               placeholder="Price"
               value={priceUpdate}
@@ -141,7 +183,7 @@ const SubmitHandler = (e: FormEvent<HTMLFormElement>) =>{
             <div>
               <label>Stock</label>
               <input
-                required
+                
                 type="number"
                 placeholder="Stock"
                 value={stockUpdate}
@@ -150,21 +192,34 @@ const SubmitHandler = (e: FormEvent<HTMLFormElement>) =>{
             </div>
 
             <div>
-              <label>Photos</label>
+              <label>Main Photo</label>
               <input
-              required
+              
               type="file"
               accept="image/*"
-              multiple
-              onChange={changeImageHandler}
+              
+              onChange={mainPhotoFile.changeHandler}
                />
             </div>
 
-            {photoUpdate && <img src={photoUpdate} />}
-            <button type="submit">Update</button>
+            <div>
+              <label>Sub Photo</label>
+              <input
+              
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={subPhotosFiles.changeHandler}
+               />
+            </div>
+
+            {mainPhotoFile.preview && <img src={mainPhotoFile.preview} />}
+            <button disabled={buttonLoading} type="submit">Update</button>
 
           </form>
         </article>
+        </>
+        )};
       </main>
 
     </div>

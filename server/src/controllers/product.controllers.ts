@@ -266,96 +266,294 @@ const getSingleProduct = asyncHandler(async (req:Request, res:Response)=> {
 });
 
 const updateProduct = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-
-  const { id } = req.params;
-
-  const { name, price, stock, category, description } = req.body;
-
-  if (!name || !price || !description || !category || !stock)  throw new ApiError(400, "Please fill all fields");
+    const { id } = req.params;
+    const { name, price, stock, category, description } = req.body;
   
-  // Ensure `req.files` exists and contains the fields we need
-  if (!req.files || !("mainPhoto" in req.files) || !("subPhotos" in req.files)) throw new ApiError(400, "Please upload photos correctly");
+    // Find product by ID
+    const product = await Product.findById(id);
+    if (!product) throw new ApiError(404, "Product not found");
   
-  // Get main photo and sub-photos from `req.files`
-  const mainPhotoFile = (req.files as { [fieldname: string]: Express.Multer.File[] })["mainPhoto"]?.[0];
-
-  const subPhotosFiles = (req.files as { [fieldname: string]: Express.Multer.File[] })["subPhotos"];
-
-  if (!mainPhotoFile)  throw new ApiError(400, "Please upload a main photo");
+    // Initialize an empty `updates` object to store changes
+    const updates: any = {};
+    const updatedFields: string[] = [];
   
-  if (!subPhotosFiles || subPhotosFiles.length < 1)  throw new ApiError(400, "Please upload at least one sub-photo");
+    // Update text fields if provided
+    if (name) {
+      updates.name = name;
+      updatedFields.push("name");
+    }
+    if (price) {
+      updates.price = price;
+      updatedFields.push("price");
+    }
+    if (stock) {
+      updates.stock = stock;
+      updatedFields.push("stock");
+    }
+    if (category) {
+      updates.category = category;
+      updatedFields.push("category");
+    }
+    if (description) {
+      updates.description = description;
+      updatedFields.push("description");
+    }
   
-  if (subPhotosFiles.length > 5) throw new ApiError(400, "Please upload a maximum of 5 sub-photos");
-
-  // Find product by ID
-  const product = await Product.findById(id);
-
-  if (!product) throw new ApiError(404, "Product not found");
-
-  // Upload new photos to Cloudinary
-  const mainPhotoUpload = await uploadOnCloudinaryNotDelete(mainPhotoFile.path);
-
-  if (!mainPhotoUpload) throw new ApiError(500, "Error in uploading main photo");
+    // Ensure `req.files` exists and contains the fields we need (optional updates)
+    if (req.files) {
+      // Get main photo and sub-photos from `req.files`
+      const mainPhotoFile = (req.files as { [fieldname: string]: Express.Multer.File[] })["mainPhoto"]?.[0];
+      const subPhotosFiles = (req.files as { [fieldname: string]: Express.Multer.File[] })["subPhotos"];
   
-  const mainPhoto = {
-      public_id: mainPhotoUpload.public_id,
-      url: mainPhotoUpload.url,
-  };
-
-  const subPhotos = await Promise.all(
-      subPhotosFiles.map(async (file) => {
-          const uploadPhoto = await uploadOnCloudinaryNotDelete(file.path);
-          if (!uploadPhoto) {
+      // Upload new main photo if provided
+      if (mainPhotoFile) {
+        const mainPhotoUpload = await uploadOnCloudinaryNotDelete(mainPhotoFile.path);
+        if (!mainPhotoUpload) throw new ApiError(500, "Error in uploading main photo");
+  
+        updates.mainPhoto = {
+          public_id: mainPhotoUpload.public_id,
+          url: mainPhotoUpload.url,
+        };
+        updatedFields.push("main photo");
+      }
+  
+      // Upload new sub-photos if provided
+      if (subPhotosFiles && subPhotosFiles.length > 0) {
+        if (subPhotosFiles.length > 5) throw new ApiError(400, "Please upload a maximum of 5 sub-photos");
+  
+        const subPhotos = await Promise.all(
+          subPhotosFiles.map(async (file) => {
+            const uploadPhoto = await uploadOnCloudinaryNotDelete(file.path);
+            if (!uploadPhoto) {
               throw new ApiError(500, "Error in uploading sub-photos");
-          }
-          return { public_id: uploadPhoto.public_id, url: uploadPhoto.url };
-      })
-  );
-
-  // Update the product in the database
-  const updatedProduct = await Product.findByIdAndUpdate(
-      id,
-      {
-          $set: {
-              name,
-              price,
-              description,
-              category,
-              stock,
-              mainPhoto,
-              subPhotos,
-          },
-      },
-      { new: true }
-  );
-
-  if (!updatedProduct) throw new ApiError(500, "Error in updating product");
+            }
+            return { public_id: uploadPhoto.public_id, url: uploadPhoto.url };
+          })
+        );
   
-  // Delete old photos from Cloudinary
-  const oldPhotoIds = [];
-
-  if (product.mainPhoto?.public_id) oldPhotoIds.push(product.mainPhoto.public_id);
+        updates.subPhotos = subPhotos;
+        updatedFields.push("sub photos");
+      }
+    }
   
-  if (product.subPhotos && Array.isArray(product.subPhotos)) {
+    // Update the product in the database
+    const updatedProduct = await Product.findByIdAndUpdate(id, { $set: updates }, { new: true });
+    if (!updatedProduct) throw new ApiError(500, "Error in updating product");
+  
+    // Delete old photos from Cloudinary if new photos are uploaded
+    const oldPhotoIds = [];
+  
+    if (updates.mainPhoto && product.mainPhoto?.public_id) {
+      oldPhotoIds.push(product.mainPhoto.public_id);
+    }
+  
+    if (updates.subPhotos && product.subPhotos && Array.isArray(product.subPhotos)) {
       product.subPhotos.forEach((photo) => {
-          if (photo.public_id) {
-              oldPhotoIds.push(photo.public_id);
-          }
+        if (photo.public_id) {
+          oldPhotoIds.push(photo.public_id);
+        }
       });
-  }
-
-  await Promise.all(
+    }
+  
+    await Promise.all(
       oldPhotoIds.map(async (public_id) => {
-          await deleteOnCloudinary(public_id);
+        await deleteOnCloudinary(public_id);
       })
-  );
+    );
+  
+    // Invalidate cache if necessary
+    invalidateCache({ product: true, productId: String(product._id), admin: true });
+  
+    // Generate dynamic response message
+    const updatedFieldsMessage = updatedFields.length > 1
+      ? `${updatedFields.slice(0, -1).join(", ")} and ${updatedFields.slice(-1)}`
+      : updatedFields[0];
+  
+    // Send response
+    return res
+      .status(200)
+      .json(new ApiResponse(200, { updatedProduct }, `${updatedFieldsMessage} updated successfully`));
+  });
+  
 
-  // Invalidate cache if necessary
-  invalidateCache({ product: true, productId: String(product._id), admin: true });
+// const updateProduct = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+//     const { id } = req.params;
+//     const { name, price, stock, category, description } = req.body;
+  
+//     // Find product by ID
+//     const product = await Product.findById(id);
+//     if (!product) throw new ApiError(404, "Product not found");
+  
+//     // Initialize an empty `updates` object to store changes
+//     const updates: any = {};
+  
+//     // Update text fields if provided
+//     if (name) updates.name = name;
+//     if (price) updates.price = price;
+//     if (stock) updates.stock = stock;
+//     if (category) updates.category = category;
+//     if (description) updates.description = description;
+  
+//     // Ensure `req.files` exists and contains the fields we need (optional updates)
+//     if (req.files) {
+//       // Get main photo and sub-photos from `req.files`
+//       const mainPhotoFile = (req.files as { [fieldname: string]: Express.Multer.File[] })["mainPhoto"]?.[0];
+//       const subPhotosFiles = (req.files as { [fieldname: string]: Express.Multer.File[] })["subPhotos"];
+  
+//       // Upload new main photo if provided
+//       if (mainPhotoFile) {
+//         const mainPhotoUpload = await uploadOnCloudinaryNotDelete(mainPhotoFile.path);
+//         if (!mainPhotoUpload) throw new ApiError(500, "Error in uploading main photo");
+  
+//         updates.mainPhoto = {
+//           public_id: mainPhotoUpload.public_id,
+//           url: mainPhotoUpload.url,
+//         };
+//       }
+  
+//       // Upload new sub-photos if provided
+//       if (subPhotosFiles && subPhotosFiles.length > 0) {
+//         if (subPhotosFiles.length > 5) throw new ApiError(400, "Please upload a maximum of 5 sub-photos");
+  
+//         const subPhotos = await Promise.all(
+//           subPhotosFiles.map(async (file) => {
+//             const uploadPhoto = await uploadOnCloudinaryNotDelete(file.path);
+//             if (!uploadPhoto) {
+//               throw new ApiError(500, "Error in uploading sub-photos");
+//             }
+//             return { public_id: uploadPhoto.public_id, url: uploadPhoto.url };
+//           })
+//         );
+  
+//         updates.subPhotos = subPhotos;
+//       }
+//     }
+  
+//     // Update the product in the database
+//     const updatedProduct = await Product.findByIdAndUpdate(id, { $set: updates }, { new: true });
+//     if (!updatedProduct) throw new ApiError(500, "Error in updating product");
+  
+//     // Delete old photos from Cloudinary if new photos are uploaded
+//     const oldPhotoIds = [];
+  
+//     if (updates.mainPhoto && product.mainPhoto?.public_id) {
+//       oldPhotoIds.push(product.mainPhoto.public_id);
+//     }
+  
+//     if (updates.subPhotos && product.subPhotos && Array.isArray(product.subPhotos)) {
+//       product.subPhotos.forEach((photo) => {
+//         if (photo.public_id) {
+//           oldPhotoIds.push(photo.public_id);
+//         }
+//       });
+//     }
+  
+//     await Promise.all(
+//       oldPhotoIds.map(async (public_id) => {
+//         await deleteOnCloudinary(public_id);
+//       })
+//     );
+  
+//     // Invalidate cache if necessary
+//     invalidateCache({ product: true, productId: String(product._id), admin: true });
+  
+//     // Send response
+//     return res.status(200).json(new ApiResponse(200, { updatedProduct }, "Product updated successfully"));
+//   });
 
-  // Send response
-  return res.status(200).json(new ApiResponse(200, { updatedProduct }, "Product updated successfully"));
-});
+  //COLU
+
+// const updateProduct = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+
+//   const { id } = req.params;
+
+//   const { name, price, stock, category, description } = req.body;
+
+//   //////////////////////////if (!name || !price || !description || !category || !stock)  throw new ApiError(400, "Please fill all fields");
+  
+//   // Ensure `req.files` exists and contains the fields we need
+//   ///////////////////////if (!req.files || !("mainPhoto" in req.files) || !("subPhotos" in req.files)) throw new ApiError(400, "Please upload photos correctly");
+  
+//   // Get main photo and sub-photos from `req.files`
+//   const mainPhotoFile = (req.files as { [fieldname: string]: Express.Multer.File[] })["mainPhoto"]?.[0];
+
+//   const subPhotosFiles = (req.files as { [fieldname: string]: Express.Multer.File[] })["subPhotos"];
+
+//   //////////////////if (!mainPhotoFile)  throw new ApiError(400, "Please upload a main photo");
+  
+//   //////////////////if (!subPhotosFiles || subPhotosFiles.length < 1)  throw new ApiError(400, "Please upload at least one sub-photo");
+  
+//   //////////////////if (subPhotosFiles.length > 5) throw new ApiError(400, "Please upload a maximum of 5 sub-photos");
+
+//   // Find product by ID
+//   const product = await Product.findById(id);
+
+//   if (!product) throw new ApiError(404, "Product not found");
+
+//   // Upload new photos to Cloudinary
+//   const mainPhotoUpload = await uploadOnCloudinaryNotDelete(mainPhotoFile.path);
+
+//   if (!mainPhotoUpload) throw new ApiError(500, "Error in uploading main photo");
+  
+//   const mainPhoto = {
+//       public_id: mainPhotoUpload.public_id,
+//       url: mainPhotoUpload.url,
+//   };
+
+//   const subPhotos = await Promise.all(
+//       subPhotosFiles.map(async (file) => {
+//           const uploadPhoto = await uploadOnCloudinaryNotDelete(file.path);
+//           if (!uploadPhoto) {
+//               throw new ApiError(500, "Error in uploading sub-photos");
+//           }
+//           return { public_id: uploadPhoto.public_id, url: uploadPhoto.url };
+//       })
+//   );
+
+//   // Update the product in the database
+//   const updatedProduct = await Product.findByIdAndUpdate(
+//       id,
+//       {
+//           $set: {
+//               name,
+//               price,
+//               description,
+//               category,
+//               stock,
+//               mainPhoto,
+//               subPhotos,
+//           },
+//       },
+//       { new: true }
+//   );
+
+//   if (!updatedProduct) throw new ApiError(500, "Error in updating product");
+  
+//   // Delete old photos from Cloudinary
+//   const oldPhotoIds = [];
+
+//   if (product.mainPhoto?.public_id) oldPhotoIds.push(product.mainPhoto.public_id);
+  
+//   if (product.subPhotos && Array.isArray(product.subPhotos)) {
+//       product.subPhotos.forEach((photo) => {
+//           if (photo.public_id) {
+//               oldPhotoIds.push(photo.public_id);
+//           }
+//       });
+//   }
+
+//   await Promise.all(
+//       oldPhotoIds.map(async (public_id) => {
+//           await deleteOnCloudinary(public_id);
+//       })
+//   );
+
+//   // Invalidate cache if necessary
+//   invalidateCache({ product: true, productId: String(product._id), admin: true });
+
+//   // Send response
+//   return res.status(200).json(new ApiResponse(200, { updatedProduct }, "Product updated successfully"));
+// });
 
 const deleteProduct = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
 
