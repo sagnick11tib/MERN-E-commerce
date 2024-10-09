@@ -1,5 +1,6 @@
 import { FaTrash } from "react-icons/fa";
 import { Link } from "react-router-dom";
+import { CartItem } from "../types/types";
 
 type CartItemProps = {
     AllCartItem: {
@@ -7,32 +8,36 @@ type CartItemProps = {
         name: string;
         price: number;
         quantity: number;
-        photo: string;
+        mainPhoto: string ;
+        stock: number;
     }
+    incrementHandler: (cartItem: CartItem) => void;  
+    decrementHandler: (cartItem: CartItem) => void;
+    removeHandler: (productId: string) => void;
 };
 
-const CartItem = ({ AllCartItem }: CartItemProps) => {
-    const { productId, name, price, quantity, photo } = AllCartItem;
+const CartItemShow = ({ AllCartItem, incrementHandler, decrementHandler, removeHandler }: CartItemProps) => {
+    const { productId, name, price, quantity, mainPhoto } = AllCartItem;
 
   return (
     <div className="cart-item">
-        <img src={photo} alt={name} /> 
+        <img src={mainPhoto} alt={name} /> 
         <article>
             <Link to={`/product/${productId}`}><h4>{name}</h4></Link>
             <span>₹{price}</span>
             </article> 
 
          <div>
-            <button>-</button>
+            <button onClick={()=> decrementHandler(AllCartItem)}>-</button>
             <p>{quantity}</p>
-            <button>+</button>
+            <button onClick={()=> incrementHandler(AllCartItem)}>+</button>
         </div>   
 
-        <button><FaTrash /></button>
+        <button onClick={()=> removeHandler(productId)}><FaTrash /></button>
 
 
     </div>
   )
 }
 
-export default CartItem
+export default CartItemShow

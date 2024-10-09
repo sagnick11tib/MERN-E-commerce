@@ -2,6 +2,7 @@ import { configureStore } from "@reduxjs/toolkit";
 import { userAPI } from "./api/userAPI";
 import { userReducer } from "./reducer/userReducer";
 import { productAPI } from "./api/productAPI";
+import { cartReducer } from "./reducer/cartReducer";
 
 export const server = import.meta.env.VITE_SERVER;
 
@@ -10,6 +11,7 @@ export const store = configureStore({
         [userAPI.reducerPath]: userAPI.reducer, //userAPI give the login mutation using useLoginMutation we can call the mutation and get the response
         [productAPI.reducerPath]: productAPI.reducer,
         [userReducer.name]: userReducer.reducer, //userReducer is used to check if the user is logged in or not and to store the user data //if user is logged in then userExist action is dispatched and the user data is stored in the state and if the user is not logged in then userDoesNotExist action is dispatched and the user data is set to null
+        [cartReducer.name]: cartReducer.reducer
         
     },
      //middleware: (getDefaultMiddleware)=>[...getDefaultMiddleware(),userAPI.middleware,]
