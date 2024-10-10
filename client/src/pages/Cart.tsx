@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import CartItemCard from '../components/CartItem'
 import { useDispatch, useSelector } from 'react-redux';
 import { CartItem } from '../types/types';
-import { addToCart, removeCartItem } from '../redux/reducer/cartReducer';
+import { addToCart, calculatePrice, removeCartItem } from '../redux/reducer/cartReducer';
 //    
 //   {
 //     productId: "1234",
@@ -33,7 +33,7 @@ const Cart = () => {
 
   const dispatch = useDispatch();
 
-  const { cartItems, Subtotal, tax, total, shippingCharges, discount } = useSelector((state: any)=> state.cartReducer);
+  const { cartItems, subtotal, tax, total, shippingCharges, discount } = useSelector((state: any)=> state.cartReducer);
 
   const incrementHandler = (cartItem: CartItem) => {
 
@@ -56,8 +56,6 @@ const Cart = () => {
 
   };
 
-  
-
   const [couponCode, setCouponCode] = useState<string>("");
   const [isValidCouponCode, setIsValidCouponCode] = useState<boolean>(false);
 
@@ -71,6 +69,10 @@ const Cart = () => {
       setIsValidCouponCode(false);
     }
   },[couponCode])
+
+  useEffect(() => {
+    dispatch(calculatePrice());
+  }, [cartItems]);
 
   return (
     <div className="cart">
@@ -86,7 +88,7 @@ const Cart = () => {
         }
       </main>
       <aside>
-        <p>Subtotal:₹{Subtotal}</p>
+        <p>Subtotal:₹{subtotal}</p>
         <p>Shipping Charges: ₹{shippingCharges}</p>
         <p>Discount:<em>- ₹{discount}</em> </p>
         <p><b>Total: ₹{total}</b></p>
