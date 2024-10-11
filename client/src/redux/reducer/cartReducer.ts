@@ -47,6 +47,7 @@ export const cartReducer = createSlice({
         },
 
         calculatePrice: (state) => {
+            
             const subtotal = state.cartItems.reduce( // calculate subtotal of all items
                 (total, item) => total + item.price * item.quantity, 0 // initial value of total is 0 then add price of each item
             );
@@ -80,7 +81,9 @@ export const cartReducer = createSlice({
     }
 });
 
-export const {  addToCart, 
+export const {
+
+                addToCart, 
                 removeCartItem,
                 calculatePrice,
                 discountApplied,

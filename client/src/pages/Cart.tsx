@@ -4,7 +4,9 @@ import { Link } from 'react-router-dom';
 import CartItemCard from '../components/CartItem'
 import { useDispatch, useSelector } from 'react-redux';
 import { CartItem } from '../types/types';
-import { addToCart, calculatePrice, removeCartItem } from '../redux/reducer/cartReducer';
+import { addToCart, calculatePrice, discountApplied, removeCartItem, saveCoupon } from '../redux/reducer/cartReducer';
+import axios from 'axios';
+import { server } from '../redux/store';
 //    
 //   {
 //     productId: "1234",
@@ -23,17 +25,20 @@ import { addToCart, calculatePrice, removeCartItem } from '../redux/reducer/cart
 //     stock:88
 //   }
 // ];
-const Subtotal = 6000;
-const tax = Math.round(Subtotal * 0.18);
-const shippingCharges = 200;
-const discount = 400;
-const total = (Subtotal + tax + shippingCharges) - discount;
+// const Subtotal = 6000;
+// const tax = Math.round(Subtotal * 0.18);
+// const shippingCharges = 200;
+// const discount = 400;
+// const total = (Subtotal + tax + shippingCharges) - discount;
 
 const Cart = () => {
 
+  const { cartItems, subtotal, tax, total, shippingCharges, discount } = useSelector((state: any)=> state.cartReducer);
+
   const dispatch = useDispatch();
 
-  const { cartItems, subtotal, tax, total, shippingCharges, discount } = useSelector((state: any)=> state.cartReducer);
+  const [couponCode, setCouponCode] = useState<string>("");
+  const [isValidCouponCode, setIsValidCouponCode] = useState<boolean>(false);
 
   const incrementHandler = (cartItem: CartItem) => {
 
@@ -56,19 +61,33 @@ const Cart = () => {
 
   };
 
-  const [couponCode, setCouponCode] = useState<string>("");
-  const [isValidCouponCode, setIsValidCouponCode] = useState<boolean>(false);
-
   useEffect(()=> {
+
+    const { token: cancelToken, cancel } = axios.CancelToken.source();
+  
     const timeOutID = setTimeout(()=> {
-      if(Math.random() > 0.5) setIsValidCouponCode(true) // Randomly setting the coupon code to be valid or invalid 0.5 is just a random number ex 
-      else setIsValidCouponCode(false);
+
+      axios.get(`${server}/api/v1/payment/discount?coupon=${couponCode}`,{ cancelToken })
+      .then((res) =>{
+    
+        dispatch(discountApplied(res.data.data.discount.amount));
+        dispatch(saveCoupon(couponCode));
+        setIsValidCouponCode(true);
+        dispatch(calculatePrice());
+
+      })
+      .catch(() => {
+        dispatch(discountApplied(0));
+        setIsValidCouponCode(false);
+        dispatch(calculatePrice());
+      });
     },1000);
     return ()=> {
       clearTimeout(timeOutID);
+      cancel();
       setIsValidCouponCode(false);
     }
-  },[couponCode])
+  },[couponCode]);
 
   useEffect(() => {
     dispatch(calculatePrice());
