@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { SubmitHandler, useForm } from "react-hook-form";
 import { BiArrowBack } from "react-icons/bi";
+import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 
 type ShippingInfoTypes = {
@@ -12,6 +13,15 @@ type ShippingInfoTypes = {
 };
 
 const Shipping = () => {
+
+  const { cartItems } = useSelector((state: any)=> state.cartReducer);
+
+
+
+
+
+
+
   const { register, handleSubmit, formState: { errors } } = useForm<ShippingInfoTypes>();
   const [shippingInfo, setShippingInfo] = useState({
     address: '',
@@ -31,6 +41,10 @@ const Shipping = () => {
   const GoBackHandler = () => {
     navigate("/cart");
   };
+
+  useEffect(() => {
+    if ( cartItems.length <= 0 ) return navigate("/cart");
+  }, [cartItems]);
 
   return (
     <>

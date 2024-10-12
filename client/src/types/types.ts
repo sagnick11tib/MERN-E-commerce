@@ -36,4 +36,22 @@ export type ShippingInfo = {
     country: string;
     pinCode: string;
   };
+
+export type OrderItem = Omit<CartItem, "stock"> & { _id: string };  //Omit is a utility type that creates a new type by picking all properties from the original type except the ones we specify
+
+export type Order = {
+    orderItems: OrderItem[];
+    shippingInfo: ShippingInfo;
+    subtotal: number;
+    tax: number;
+    shippingCharges: number;
+    discount: number;
+    total: number;
+    status: string;
+    user: {
+        name: string;
+        _id: string;
+    };
+    _id: string;
+};
   

@@ -7,6 +7,7 @@ import { CartItem } from '../types/types';
 import { addToCart, calculatePrice, discountApplied, removeCartItem, saveCoupon } from '../redux/reducer/cartReducer';
 import axios from 'axios';
 import { server } from '../redux/store';
+import toast from 'react-hot-toast';
 //    
 //   {
 //     productId: "1234",
@@ -58,6 +59,7 @@ const Cart = () => {
   const removeHandler = (productId: string) => {
 
     dispatch(removeCartItem(productId));
+    toast.success("Item Removed from the Cart");
 
   };
 
