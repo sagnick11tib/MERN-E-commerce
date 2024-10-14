@@ -54,7 +54,7 @@ export interface NewProductRequestBody {
 
   export type OrderItemType = {
     name: string;
-    photo: string;
+    mainPhoto: string;
     price: number;
     quantity: number;
     productId: string;

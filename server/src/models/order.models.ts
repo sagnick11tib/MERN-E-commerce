@@ -78,7 +78,7 @@ const oderSchema = new Schema(
                 type: String,
                 required: true,
             },
-            photo: {
+            mainPhoto: {
                 type: String,
                 required: true,
             },
