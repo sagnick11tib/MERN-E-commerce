@@ -37,7 +37,7 @@ const oderSchema = new Schema(
             default: "Home",
         }
     },
-    user: {
+    user: { // this 
         type: String,
         ref: "User",
         required: true,

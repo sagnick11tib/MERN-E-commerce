@@ -114,5 +114,12 @@ export type UpdateOrderRequest = {
     }
   }
 
+  export type  OrderDetailsResponse = {
+    success: boolean;
+    data: {
+        order: Order;
+    }
+  }
+
 
 

@@ -44,7 +44,7 @@ export type Order = {
     shippingInfo: ShippingInfo;
     subtotal: number;
     tax: number;
-    shippingCharges: number;
+    shippingcharges: number;
     discount: number;
     total: number;
     status: string;

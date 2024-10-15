@@ -54,17 +54,15 @@ const myOrders = asyncHandler(async (req, res)=> {
 
 });
 
+
 const allOrder = asyncHandler(async (req, res)=> {
 
     const key = `all-order`;
 
-    let orders=[];
+        let orders=[];
 
-    if(nodeCache.has(key)) orders = JSON.parse(nodeCache.get(key) as string)
-    else {
          orders = await Order.find().populate("user", "name")// connect user model in order model and show only user model-> only show name (name of the user)
-         nodeCache.set(key, JSON.stringify(orders));
-         }   
+  
      return res.status(201).json(new ApiResponse(201, { orders }, "All Order fetched Sucessfuly"));
 
 });
@@ -112,11 +110,13 @@ const processOrder = asyncHandler(async (req,res)=> {
 
     }
 
-    await order.save();
+    const updatedOrder = await order.save();
 
-     invalidateCache({ product: false, order: true, admin: true, userId: order.user, orderId: String(order._id) });
 
-    return res.status(200).json(new ApiResponse(200, { order }, "Order Processed Succesfully"));
+
+    invalidateCache({ product: false, order: true, admin: true, userId: order.user, orderId: String(order._id) });
+
+    return res.status(200).json(new ApiResponse(200, { order: updatedOrder }, "Order Processed Succesfully"));
 
 });
 

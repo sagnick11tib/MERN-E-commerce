@@ -1,77 +1,82 @@
-
-import { useState } from 'react'
 import AdminSidebar from '../../../components/admin/AdminSidebar'
-import { OrderItemType, OrderType } from '../../../types'
-import { Link } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { FaTrash } from 'react-icons/fa'
+import { UserReducerInitialState } from '../../../types/reducer-types'
+import { useSelector } from 'react-redux'
+import { useAllOrdersQuery, useDeleteOrderMutation, useOrderDetailsQuery, useUpdateOrderMutation } from '../../../redux/api/orderAPI'
+import { responseToast } from '../../../utils/features'
+import { OrderItem } from '../../../types/types'
 
-
-
-const image: string = "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-
-const orderItems: OrderItemType[] = [
-  {
-    name: "Puma Shoes",
-    photo: image,
-    price: 1000,
-    quantity: 1,
-    _id: "1"
+const defaultData = {
+  shippingInfo: {
+    address: "",
+    city: "",
+    state: "",
+    country: "",
+    pinCode: "",
+    phoneno: "",
+    landmark: "",
+    addresstype: ""
   },
-  {
-    name: "Puma Shoes",
-    photo: image,
-    price: 1000,
-    quantity: 1,
-    _id: "1"
-  },
-  {
-    name: "Puma Shoes",
-    photo: image,
-    price: 1000,
-    quantity: 1,
-    _id: "1"
-  },
-  {
-    name: "Puma Shoes",
-    photo: image,
-    price: 1000,
-    quantity: 1,
-    _id: "1"
-  },
-]
-
-
-
+  status: "",
+  subtotal: 0,
+  discount: 0,
+  shippingcharges: 0,
+  tax: 0,
+  total: 0,
+  orderItems: [],
+  user: { name: "", _id: "" },
+  _id: ""
+};
 
 const TransactionManagement = () => {
 
-  const [ order, setOrder ] = useState<OrderType>(
-    {
-    name: "John Doe",
-    address: "123, Main Street",
-    city: "New York",
-    country: "USA",
-    state: "New York",
-    pinCode: 123456,
-    status: "Processing",
-    subtotal: 1000,
-    discount: 20,
-    shippingCharge: 100,
-    tax: 10,
-    total: 1000 + 100 - 20 + 10,
-    orderItems: orderItems,
-    _id: "hfhdifhh155"
-    }
-);
+  const { user }  = useSelector((state: {userReducer: UserReducerInitialState}) => state.userReducer);
 
-const { name, address, city, country, state, pinCode, subtotal, shippingCharge, tax, discount, total, status } = order;
+  const params = useParams();
 
-const updateHandler = () => {
-  setOrder(prev => ({
-    ...prev,
-    status: prev.status === "Processing" ? "Shipped" : "Delivered"
-}));
+  const navigate = useNavigate();
+
+  const { data, isError } = useOrderDetailsQuery(params.id!);
+
+  console.log(data?.data.order);
+
+  const {
+    status,
+    subtotal,
+    discount,
+    shippingcharges,
+    tax,
+    total,
+    orderItems,
+    user: { name },
+    shippingInfo: { address, city, state, country, pinCode }
+
+  } = data?.data.order || defaultData;
+  
+
+  const [updateOrder] = useUpdateOrderMutation();
+  const [deleteOrder] = useDeleteOrderMutation();
+  const { refetch: refetchOrders } = useAllOrdersQuery(user?._id!);
+
+const updateHandler = async () => {
+  const res = await updateOrder({
+    userId: user?._id!,
+    orderId: data?.data.order._id!
+  });
+  responseToast(res, navigate, "/admin/transaction");
+  refetchOrders();
 };
+
+const deleteHandler = async () => {
+  const res = await deleteOrder({
+    userId: user?._id!,
+    orderId: data?.data.order._id!
+  });
+  responseToast(res, navigate, "/admin/transaction"); 
+};
+
+if (isError) return <Navigate to={"/404"} />;
 
   return (
     <>
@@ -81,19 +86,20 @@ const updateHandler = () => {
         <section>
         <h2>Order Items</h2>
         {
-          order.orderItems.map(i=>(
-            <ProductCard 
-              name={i.name}
-              photo={i.photo}
-              price={i.price}
-              quantity={i.quantity}
-              _id={i._id}
-            />
-          ))
-        }
+         orderItems.map((i: any) => (
+          <ProductCard
+          key={i._id}
+          name={i.name}
+          mainPhoto={i.mainPhoto}
+          price={i.price}
+          quantity={i.quantity}
+          _id={i._id}
+          productId={i.productId}
+          />
+         ))}
         </section>
         <article className="shipping-info-card">
-        <button className="product-delete-btn">
+        <button onClick={deleteHandler} className="product-delete-btn">
                 <FaTrash />
               </button>
         <h1>Order Info</h1>
@@ -103,7 +109,7 @@ const updateHandler = () => {
         <h5>Amount Info</h5>
         <p>Subtotal: ₹{subtotal}</p>
         <p>Discount: ₹{discount}</p>
-        <p>Shipping Charge: ₹{shippingCharge}</p>
+        <p>Shipping Charge: ₹{shippingcharges}</p>
         <p>Tax: ₹{tax}</p>
         <p>Total: ₹{total}</p>
         <h5>Status Info</h5>
@@ -134,14 +140,14 @@ const updateHandler = () => {
 
 const ProductCard = ({
   name,
-  photo,
+  mainPhoto,
   price,
   quantity,
-  _id
-}: OrderItemType) => (
+  productId,
+}: OrderItem) => (
   <div className="transaction-product-card">
-    <img src={photo} alt={name} />
-    <Link to={`/product/${_id}`}>{name}</Link>
+    <img src={mainPhoto} alt={name} />
+    <Link to={`/product/${productId}`}>{name}</Link>
     <span>
       ₹{price} X {quantity} = ₹{price * quantity}
     </span>

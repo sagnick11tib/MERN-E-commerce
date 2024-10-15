@@ -50,7 +50,6 @@ const Routing = ()=>{
     return (
       <>
        
-       
         <Suspense fallback={<LoaderLayout />}>
         <Routes>
             <Route path="/" element={<Home />} />
