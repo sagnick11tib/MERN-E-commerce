@@ -121,5 +121,12 @@ export type UpdateOrderRequest = {
     }
   }
 
+  export type AllUsersResponse ={
+    sucess: boolean;
+    data: {
+        users: User[];
+    }
+  }
+
 
 

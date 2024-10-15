@@ -80,37 +80,6 @@ const ProductManagement = () => {
     }
   };
 
-  // const submitHandler = async (e: FormEvent<HTMLFormElement>) => {
-  //   e.preventDefault();
-  //   setButtonLoading(true);
-  //   try {
-  //     const formData = new FormData();
-
-  //     if (nameUpdate) formData.set("name", nameUpdate); 
-  //     if (descriptionUpdate) formData.set("description", descriptionUpdate);
-  //     if (priceUpdate) formData.set("price", priceUpdate.toString());
-  //     if (stockUpdate !== undefined) formData.set("stock", stockUpdate.toString());
-  //     if (categoryUpdate) formData.set("category", categoryUpdate);
-  //     if (mainPhotoFile.file ) formData.append("mainPhoto", mainPhotoFile.file);
-  //     if (subPhotosFiles.file && subPhotosFiles.file.length > 0) {
-  //       subPhotosFiles.file.forEach((file) => {
-  //         formData.append("subPhotos", file);
-  //       });
-  //     }
-  //     const res = await updateProduct({
-  //       formData,
-  //       userId: user?._id!,
-  //       productId: data?.data?.product._id!
-  //     });
-
-  //     responseToast(res, navigate, "/admin/product");
-  //   } catch (error) {
-  //     console.log(error);
-  //   } finally {
-  //     setButtonLoading(false);
-  //   }
-  // };
-
   const deleteHandler = async () => {
     const res = await deleteProduct({
       userId: user?._id!,

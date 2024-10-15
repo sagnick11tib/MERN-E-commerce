@@ -90,9 +90,11 @@ const deleteUser = asyncHandler(async (
                                       )=>{
                                         const id = req.params.id;
 
-                                        if(!id) throw new ApiError(400, "User id is required")
+                                        if(!id) throw new ApiError(400, "User id is required to delete");
 
                                         const user = await User.findById(id);
+
+                                        if(!user) throw new ApiError(404, "User not found for Delete");
 
                                         await user?.deleteOne();
 

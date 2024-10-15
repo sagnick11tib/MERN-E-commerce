@@ -1,8 +1,16 @@
 import TableHOC from '../../components/admin/TableHOC'
 import AdminSidebar from '../../components/admin/AdminSidebar'
 import { ColumnDef } from '@tanstack/react-table'
-import { ReactElement, useCallback, useState } from 'react';
+import { ReactElement, useCallback, useEffect, useState } from 'react';
 import { FaTrash } from 'react-icons/fa';
+import { useSelector } from 'react-redux';
+import { UserReducerInitialState } from '../../types/reducer-types';
+import { useAllOrdersQuery } from '../../redux/api/orderAPI';
+import { useAllUsersQuery, useDeleteUserMutation } from '../../redux/api/userAPI';
+import { responseToast } from '../../utils/features';
+import { CustomError } from '../../types/api-types';
+import toast from 'react-hot-toast';
+import { Skeleton } from '../../components/Loader';
 interface DataType {
   avatar: ReactElement;
   name: string;
@@ -40,80 +48,63 @@ const columns: ColumnDef<DataType>[] = [
   }
 ]
 
-const arr: DataType[] = [
-  {
-   avatar: <img src="http://res.cloudinary.com/dtr59xel0/image/upload/v1725865544/hmvnbxidwqvzy5lkmwuf.png" />,
-   name: "Ujjala Radha Tung",
-   gender: "Female",
-   email: "ujjalaradha1325@gmail.com",
-   role: "Admin",
-   action: <button ><FaTrash /></button>
-  },
-  {
-    avatar: <img src="http://res.cloudinary.com/dtr59xel0/image/upload/v1725865544/hmvnbxidwqvzy5lkmwuf.png" />,
-    name: "Ujjala Radha Tung",
-    gender: "Female",
-    email: "ujjalaradha1325@gmail.com",
-    role: "Admin",
-    action: <button ><FaTrash /></button>
-  },
-  {
-    avatar: <img src="http://res.cloudinary.com/dtr59xel0/image/upload/v1725865544/hmvnbxidwqvzy5lkmwuf.png" />,
-    name: "Ujjala Radha Tung",
-    gender: "Female",
-    email: "ujjalaradha1325@gmail.com",
-    role: "Admin",
-    action: <button ><FaTrash /></button>
-  },
-  {
-    avatar: <img src="http://res.cloudinary.com/dtr59xel0/image/upload/v1725865544/hmvnbxidwqvzy5lkmwuf.png" />,
-    name: "Ujjala Radha Tung",
-    gender: "Female",
-    email: "ujjalaradha1325@gmail.com",
-    role: "Admin",
-    action: <button ><FaTrash /></button>
-  },
-  {
-    avatar: <img src="http://res.cloudinary.com/dtr59xel0/image/upload/v1725865544/hmvnbxidwqvzy5lkmwuf.png" />,
-    name: "Ujjala Radha Tung",
-    gender: "Female",
-    email: "ujjalaradha1325@gmail.com",
-    role: "Admin",
-    action: <button ><FaTrash /></button>
-  },
-  {
-    avatar: <img src="http://res.cloudinary.com/dtr59xel0/image/upload/v1725865544/hmvnbxidwqvzy5lkmwuf.png" />,
-    name: "Ujjala Radha Tung",
-    gender: "Female",
-    email: "ujjalaradha1325@gmail.com",
-    role: "Admin",
-    action: <button ><FaTrash /></button>
-  },
-  {
-    avatar: <img src="http://res.cloudinary.com/dtr59xel0/image/upload/v1725865544/hmvnbxidwqvzy5lkmwuf.png" />,
-    name: "Ujjala Radha Tung",
-    gender: "Female",
-    email: "ujjalaradha1325@gmail.com",
-    role: "Admin",
-    action: <button ><FaTrash /></button>
-  },
-];
 
 const Customers = () => {
-  const [ data ] = useState<DataType[]>(arr);
-  const customerDetails = useCallback(TableHOC<DataType>(
+
+  const { user } = useSelector( (state: { userReducer:UserReducerInitialState }) => state.userReducer);
+
+  //console.log(user?._id);
+
+  const { isLoading, data, isError, error } = useAllUsersQuery(user?._id!);
+
+  const [ rows, setRows ] = useState<DataType[]>([]);
+
+  const [ deleteUser ] = useDeleteUserMutation();
+
+  const deleteHandler = async (userId: string) => {
+
+    const res = await deleteUser({
+                                  userId,
+                                  adminUserId: user?._id! });
+    responseToast(res, null, "User Deleted Successfully");
+
+  };
+
+  if (isError) {
+    const err = error as CustomError;
+    toast.error(err.data.message);
+  }
+
+  useEffect(() => {
+    if (data && data!.data!.users){
+      setRows(data?.data!.users!.map((i: any) => ({
+        avatar: (
+          <img style={{ borderRadius: "50%"}} src={i.photo} alt={i.name} />
+        ),
+        name: i.name,
+        email: i.email,
+        gender:i.gender,
+        role: i.role,
+        action: (
+          <button onClick={() => deleteHandler(i._id)}><FaTrash /></button>
+        )
+      })))
+    }
+  },[data]);
+
+  const customerDetails = TableHOC<DataType>(
     columns,
-    data,
+    rows,
     "dashboard-product-box",
     "Customers",
-     true
-  ),[]);
+    rows.length > 6
+  )()
   return (
     <div className="admin-container">
       <AdminSidebar />
       <main>
         {
-          customerDetails()
+          isLoading ? <Skeleton length={20} /> : customerDetails
         }
       </main>
     </div>

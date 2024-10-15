@@ -1,6 +1,6 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { User } from "../../types/types";
-import { MessageResponse, DeleteUserRequest, UserResponse } from "../../types/api-types";
+import { MessageResponse, DeleteUserRequest, UserResponse, AllUsersResponse } from "../../types/api-types";
 import axios from "axios";
 
 export const userAPI = createApi({ //helping to send the user data to the backend to store in the database using the login mutation
@@ -21,11 +21,18 @@ export const userAPI = createApi({ //helping to send the user data to the backen
 
         deleteUser: builder.mutation<MessageResponse,DeleteUserRequest>({ //<firstParameter is the return type of the mutation, secondParameter is the type of the request>
             query: ({ userId, adminUserId }) =>({
-                url: `${userId}?id=${adminUserId}`,
+                url: `${userId}?_id=${adminUserId}`,
                 method: 'DELETE'
             }),
             invalidatesTags: ["users"]
         }),
+
+        allUsers: builder.query<AllUsersResponse,string>({
+            
+            query: (id) => `all?_id=${id}`,
+            
+            providesTags: ["users"]
+        })
 
 
     })
@@ -42,4 +49,4 @@ export const getUser = async(id: string) => {
     }
 }
 
-export const { useLoginMutation, useDeleteUserMutation } = userAPI; //useLoginMutation is a hook that can be used to call the login mutation
+export const { useLoginMutation, useDeleteUserMutation, useAllUsersQuery } = userAPI; //useLoginMutation is a hook that can be used to call the login mutation
