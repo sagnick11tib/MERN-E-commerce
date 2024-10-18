@@ -19,7 +19,7 @@ const oderSchema = new Schema(
             type: String,
             required: [true, "Please enter country"],
         },
-        pincode: {
+        pinCode: {
             type: Number,
             required: [true, "Please enter pin code"],
         },
@@ -71,6 +71,10 @@ const oderSchema = new Schema(
         type: String,
         enum: ["Processing", "Shipped", "Delivered"],
         default: "Processing",
+    },
+    paymentId:{
+        type: String,
+        required: true,
     },
     orderItems: [
         {

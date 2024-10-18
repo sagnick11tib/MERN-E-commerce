@@ -1,0 +1,95 @@
+// src/components/ThankYouPage.scss
+
+.thank-you-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #f5f7fa;
+  
+    .thank-you-container {
+      background-color: #fff;
+      border-radius: 10px;
+      padding: 30px;
+      text-align: center;
+      box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.1);
+      width: 400px;
+  
+      .success-icon {
+        font-size: 50px;
+        color: #4caf50;
+        margin-bottom: 15px;
+      }
+  
+      h1 {
+        font-size: 24px;
+        color: #333;
+        margin-bottom: 10px;
+      }
+  
+      p {
+        color: #666;
+        margin-bottom: 20px;
+      }
+  
+      .order-details {
+        background-color: #f8f9fb;
+        padding: 20px;
+        border-radius: 5px;
+        text-align: left;
+        margin-bottom: 20px;
+  
+        h2 {
+          font-size: 18px;
+          margin-bottom: 10px;
+          color: #333;
+        }
+  
+        p {
+          font-size: 14px;
+          color: #555;
+          margin: 5px 0;
+  
+          strong {
+            color: #333;
+          }
+  
+          .status {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-weight: bold;
+          }
+  
+          .status.processing {
+            background-color: #f7cb73;
+            color: #fff;
+          }
+  
+          .status.completed {
+            background-color: #4caf50;
+            color: #fff;
+          }
+  
+          .status.cancelled {
+            background-color: #e74c3c;
+            color: #fff;
+          }
+        }
+      }
+  
+      .go-home-btn {
+        background-color: #333;
+        color: #fff;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+  
+        &:hover {
+          background-color: #555;
+        }
+      }
+    }
+  }
+  

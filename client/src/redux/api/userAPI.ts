@@ -30,7 +30,6 @@ export const userAPI = createApi({ //helping to send the user data to the backen
         allUsers: builder.query<AllUsersResponse,string>({
             
             query: (id) => `all?_id=${id}`,
-            
             providesTags: ["users"]
         })
 

@@ -3,9 +3,147 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { stripe } from "../config/stripe.js";
+import { razorInstance } from "../index.js";
+import crypto from 'crypto';
+import { Product } from "../models/product.models.js";
+import { TempOrder } from "../models/tempOrder.models.js";
+import { Order } from "../models/order.models.js";
+
+export const RazorpayPaymentInit = asyncHandler(async (req, res) => {
+    const { _id } = req.query;
+    const { items, shippingInfo, tax, subtotal, discount, shippingCharges, total } = req.body;
+
+    if (!items) throw new ApiError(400, "Items are required");
+
+    // Generate random ID
+    const randomId = crypto.randomBytes(16).toString('hex');
+
+    const options = {
+        amount: total * 100, // Razorpay expects the amount in paise
+        currency: "INR",
+        receipt: `order_rcptid_${Math.random().toString(36).substring(2, 9)}`,
+        notes: {
+            customOrderId: randomId, // Pass custom random ID
+        },
+    };
+
+    console.log("BEFORE WALA", randomId);
+
+    razorInstance.orders.create(options, async (err, order) => {
+        if (err) {
+            return res.status(500).json({ message: "Something went wrong" });
+        }
+
+        // Create TempOrder with customOrderId
+        await TempOrder.create({
+            shippingInfo,
+            cartItems: items,
+            user: _id,
+            paymentId: order.id, // Save this Razorpay order ID
+            total,
+            customOrderId: randomId, // Store the custom random ID for matching,
+            subtotal,
+                tax,
+                discount,
+                shippingCharges,
+        });
+
+        return res.status(200).json({
+            success: true,
+            order,
+            message: "Order created successfully",
+        });
+    });
+});
+
+export const getKey = asyncHandler(async (req,res)=> {
+    const key = process.env.RAZORPAY_API_KEY;
+    return res.status(200).json({
+        success: true,
+        key,
+    })
+
+});
 
 
-const createPaymentIntent = asyncHandler(async (req, res)=>{
+
+export const paymentVerification = asyncHandler(async (req, res) => {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+
+    const body = razorpay_order_id + "|" + razorpay_payment_id;
+
+    const expectedSignature = crypto
+        .createHmac("sha256", process.env.RAZORPAY_API_SECRET || "")
+        .update(body.toString())
+        .digest("hex");
+
+    const isAuthentic = expectedSignature === razorpay_signature;
+
+    if (isAuthentic) {
+        try {
+            // Fetch Razorpay order to get the custom random ID
+            const razorpayOrder = await razorInstance.orders.fetch(razorpay_order_id);
+            const customOrderId = razorpayOrder?.notes!.customOrderId; // Get your custom ID
+            console.log("VERIFY WALA = ",customOrderId);
+
+            // Use the custom ID to find TempOrder
+            const tempOrderDetails = await TempOrder.findOne({ customOrderId });
+            if (!tempOrderDetails) {
+                throw new ApiError(404, "TempOrder not found");
+            }
+
+            // Create Order
+            const newOrder = await Order.create({
+                shippingInfo: tempOrderDetails.shippingInfo,
+                user: tempOrderDetails.user,
+                paymentId: razorpay_payment_id,
+                total: tempOrderDetails.total,
+                orderItems: tempOrderDetails.cartItems,
+                subtotal: tempOrderDetails.subtotal,
+                tax: tempOrderDetails.tax,
+                discount: tempOrderDetails.discount,
+                shippingCharges: tempOrderDetails.shippingCharges,
+                status: "Processing",
+            });
+
+            if (!newOrder) {
+                throw new ApiError(400, "Failed to create the order. Please try again.");
+            }
+
+            // Update product stock
+            tempOrderDetails.cartItems.forEach(async (item: any) => {
+            
+                const product = await Product.findById(item.productId);
+
+                if (product) {
+                    product.stock -= item.quantity;
+                    await product.save();
+                }
+            });
+
+            res.redirect(
+                `http://localhost:5173/payment/success?reference=${razorpay_payment_id}`
+            );
+
+            //DELETE TEMPORDER AFTER SUCCESSFUL PAYMENT
+            await TempOrder.deleteOne({ customOrderId })
+
+        } catch (error) {
+            console.error("Error finding TempOrder:", error);
+            throw new ApiError(500, "Failed to find the TempOrder. Please try again.");
+        }
+    } else {
+        res.status(400).json({
+            success: false,
+            message: "Payment verification failed. Please try again.",
+        });
+    }
+});
+
+
+
+
+const createPaymentIntentStripe = asyncHandler(async (req, res)=>{
     
     const { amount } = req.body;
     
@@ -94,4 +232,4 @@ const deleteCoupon = asyncHandler(async (req, res)=>{
 
 });
 
-export { createPaymentIntent, newCoupon, applyDiscount, allCoupons, getCoupon, updateCoupon, deleteCoupon };
+export { createPaymentIntentStripe, newCoupon, applyDiscount, allCoupons, getCoupon, updateCoupon, deleteCoupon };

@@ -1,8 +1,13 @@
-import { useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { SubmitHandler, useForm } from "react-hook-form";
 import { BiArrowBack } from "react-icons/bi";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import { UserReducerInitialState } from "../types/reducer-types";
+import { saveShippingInfo } from "../redux/reducer/cartReducer";
+import axios from "axios";
+import { server } from "../redux/store";
+import toast from "react-hot-toast";
 
 type ShippingInfoTypes = {
   address: string;
@@ -10,33 +15,95 @@ type ShippingInfoTypes = {
   state: string;
   pinCode: string;
   country: string;
+  phoneno: number;
 };
 
 const Shipping = () => {
 
-  const { cartItems } = useSelector((state: any)=> state.cartReducer);
+  const { user } = useSelector((state: { userReducer: UserReducerInitialState}) => state.userReducer);
 
+  const { cartItems, subtotal, tax, discount, shippingCharges, total } = useSelector((state: any)=> state.cartReducer);
+  
+  console.log(subtotal, tax, discount, shippingCharges, total, cartItems);
 
-
-
-
+   const navigate = useNavigate();
+   const dispatch = useDispatch();
 
 
   const { register, handleSubmit, formState: { errors } } = useForm<ShippingInfoTypes>();
-  const [shippingInfo, setShippingInfo] = useState({
-    address: '',
-    city: '',
-    state: '',
-    pinCode: '',
-    country: ''
-  });
+  
+  const submitHandlerShipping: SubmitHandler<ShippingInfoTypes> = async (shippingData) => {
 
-  const onSubmit: SubmitHandler<ShippingInfoTypes> = (data) => {
-    setShippingInfo(data);
-    console.log(data);
-  };
+    dispatch(saveShippingInfo(shippingData));
+    try {
+        // Fetch the Razorpay key
+        const { data: { key } } = await axios.get(`http://localhost:7000/api/v1/payment/key`);
 
-  const navigate = useNavigate();
+        // Prepare cart items in the correct format
+        const formattedCartItems = cartItems.map((item: any) => ({
+            productId: item.productId,
+            mainPhoto: item.mainPhoto,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+            stock: item.stock,
+        }));
+
+        // Send request to create order
+        const { data } = await axios.post(
+            `${server}/api/v1/payment/create?_id=${user?._id!}`,
+            {
+                items: formattedCartItems, // Use formatted cart items
+                shippingInfo: shippingData, // Pass the shipping info
+                subtotal,
+                tax,
+                discount,
+                shippingCharges,
+                total
+          
+            },
+            {
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            }
+        );
+
+
+        // Razorpay options
+        const options = {
+            key,
+            amount: data.order.amount,
+            currency: "INR",
+            name: "Kishori Store",
+            description: "Modern E-commerce Store",
+            image: "https://cdn.tovp.org/wp-content/uploads/2012/08/radharani-1.jpg.webp",
+            order_id: data.order.id,
+            callback_url: `${server}/api/v1/payment/paymentVerification`,
+            prefill: {
+                name: user?.name || "Guest",
+                email: user?.email || "guest@example.com",
+                contact: shippingData.phoneno.toString(),
+            },
+            notes: {
+                address: shippingData.address,
+            },
+            theme: {
+                color: "#121212",
+            },
+        };
+
+        // Open Razorpay
+        const razorpay = new (window as any).Razorpay(options);
+        razorpay.open();
+
+    } catch (error) {
+        console.log(error);
+        toast.error("Something went wrong");
+    }
+};
+
+ 
 
   const GoBackHandler = () => {
     navigate("/cart");
@@ -53,7 +120,7 @@ const Shipping = () => {
           <BiArrowBack />
           Back
         </button>
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit(submitHandlerShipping)}>
           <h1>SHIPPING ADDRESS</h1>
 
         
@@ -95,7 +162,12 @@ const Shipping = () => {
             />
             {errors.pinCode && <span>This field is required</span>}
           
-
+            <input
+              required
+              type="number"
+              placeholder="Phone Number"
+              {...register('phoneno', { required: true })}  
+            />
           
             <select
               required
@@ -117,225 +189,3 @@ const Shipping = () => {
 };
 
 export default Shipping;
-
-
-
-
-// import { useState } from "react";
-// import { SubmitHandler, useForm } from "react-hook-form";
-// import { BiArrowBack } from "react-icons/bi";
-// import { useNavigate } from "react-router-dom";
-
-// type ShippingInfoTypes = {
-//   address: string;
-//   city: string;
-//   state: string;
-//   pinCode: string;
-//   country: string;
-// };
-
-
-
-// const Shipping = () => {
-//   const { register, handleSubmit, formState: { errors } } = useForm<ShippingInfoTypes>();
-//   const [shippingInfo, setShippingInfo] = useState({
-//     address: '',
-//     city: '',
-//     state: '',
-//     pinCode: '',
-//     country: ''
-//   });
-
-//   const onSubmit: SubmitHandler<ShippingInfoTypes> = (data) => {
-//     setShippingInfo(data);
-//     console.log(data);
-//   };
-
-//   const navigate = useNavigate();
-
-// const GoBackHandler = () => {
-//   //window.history.back(); //this will take us to the previous page
-//   //navigate(-1); //this will also take us to the previous page
-//   navigate("/cart"); //this will take us to the
-// };
-
-//   return (
-//     <>
-//       <div className="shipping p-6 max-w-lg mx-auto bg-white rounded-xl shadow-md space-y-4">
-//         <button className="flex items-center text-blue-500 hover:text-blue-700 " onClick={GoBackHandler}>
-//           <BiArrowBack className="mr-2" />
-//           Back
-//         </button>
-//         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-//           <h1 className="text-2xl font-bold text-center">SHIPPING ADDRESS</h1>
-
-//           <div>
-//             <input
-//               required
-//               type="text"
-//               placeholder="Address"
-//               {...register('address', { required: true })}
-//               className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-//             />
-//             {errors.address && <span className="text-red-500">This field is required</span>}
-//           </div>
-
-//           <div>
-//             <input
-//               required
-//               type="text"
-//               placeholder="City"
-//               {...register('city', { required: true })}
-//               className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-//             />
-//             {errors.city && <span className="text-red-500">This field is required</span>}
-//           </div>
-
-//           <div>
-//             <input
-//               required
-//               type="text"
-//               placeholder="State"
-//               {...register('state', { required: true })}
-//               className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-//             />
-//             {errors.state && <span className="text-red-500">This field is required</span>}
-//           </div>
-
-//           <div>
-//             <input
-//               required
-//               type="number"
-//               placeholder="PinCode"
-//               {...register('pinCode', { required: true })}
-//               className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-//             />
-//             {errors.pinCode && <span className="text-red-500">This field is required</span>}
-//           </div>
-
-//           <div>
-//             <select
-//               required
-//               {...register('country', { required: true })}
-//               className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-//             >
-//               <option value="">Choose Country</option>
-//               <option value="India">India</option>
-//               <option value="USA">USA</option>
-//               <option value="UK">UK</option>
-//             </select>
-//             {errors.country && <span className="text-red-500">This field is required</span>}
-//           </div>
-
-//           <button type="submit" className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-700">
-//             Pay Now
-//           </button>
-//         </form>
-//       </div>
-//     </>
-//   );
-// };
-
-// export default Shipping;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// const Shipping = () => {
-//   const [shippingInfo,setShippingInfo] = useState({
-//     address: '',
-//     city: '',
-//     state: '',
-//     pinCode: '',
-//     country: ''
-//   });
-
-//   const changeHandler =(e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-   
-//     setShippingInfo(prev => ({...prev,[e.target.name]: e.target.value}));
-//   };
-   
-//   return (
-//    <>
-//     <div className="shipping">
-//     <button>
-//         <BiArrowBack />
-//       </button>
-//       <form>
-//         <h1>SHIPPING ADDRESS
-//         </h1>
-
-//         <input 
-//         required
-//         type="text" 
-//         value={shippingInfo.address} 
-//         placeholder="Address"
-//         name="address" 
-//         onChange={changeHandler}/>
-
-//         <input 
-//         required
-//         type="text" 
-//         value={shippingInfo.city} 
-//         placeholder="City"
-//         name="city" 
-//         onChange={changeHandler}/>
-
-//         <input 
-//         required
-//         type="text" 
-//         value={shippingInfo.state} 
-//         placeholder="State"
-//         name="state" 
-//         onChange={changeHandler}/>
-
-//         <input 
-//         required
-//         type="number" 
-//         value={shippingInfo.pinCode} 
-//         placeholder="PinCode"
-//         name="pinCode" 
-//         onChange={changeHandler}/>
-
-//         <select 
-//         name="country" 
-//         required 
-//         value={shippingInfo.country} 
-//         onChange={changeHandler}>
-
-//             <option value="">Choose Country</option>
-//             <option value="India">India</option>
-//             <option value="USA">USA</option>
-//             <option value="UK">UK</option>
-
-
-//         </select>
-
-
-//         <button type="submit">Pay Now</button>
-
-
-
-        
-
-//       </form>
-
-
-//     </div>
-      
-
-
-//    </>
-//   )
-// }

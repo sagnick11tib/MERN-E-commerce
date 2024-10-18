@@ -17,6 +17,7 @@ const Shipping = lazy(()=> import("../pages/Shipping"));
 const Orders = lazy(()=> import("../pages/Orders"));
 const OrderDetails = lazy(()=> import("../pages/OrderDetails"));
 const Checkout = lazy(()=> import("../pages/Checkout"));
+const PaymentSuccess = lazy(()=> import("../pages/PaymentSuccess"));
 
 // Admin Pages
 const Dashboard = lazy(()=> import("../pages/admin/Dashboard"));
@@ -64,6 +65,7 @@ const Routing = ()=>{
             <Route path="/orders" element={<Orders />} />
             <Route path="/order/:id" element={<OrderDetails />} />
             <Route path="/pay" element={<Checkout />} />
+            <Route path="/payment/success" element={<PaymentSuccess />} />
             </Route>
             {/* Admin Routes */}
             <Route 

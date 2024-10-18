@@ -200,7 +200,7 @@ const getLatestProducts = asyncHandler(async (req: Request, res: Response, next:
         latestProducts = await Product.find().sort({ createdAt: -1 }).limit(5); //-1 for descending order and 1 for ascending order
 
         if ( !latestProducts ) throw new ApiError(404, "No products found");
-        console.log(latestProducts)
+      
         nodeCache.set( "latest-products", JSON.stringify(latestProducts) ); // cache the latest products for 1 hour
     }
 
