@@ -1,6 +1,11 @@
 import AdminSidebar from "../../../components/admin/AdminSidebar"
 import { DoughnutChart, PieChart } from "../../../components/admin/Charts"
 import { categories } from "../../../assets/data.json"
+import { useSelector } from "react-redux"
+import { UserReducerInitialState } from "../../../types/reducer-types"
+import { usePieQuery } from "../../../redux/api/dashboardAPI"
+import { Navigate } from "react-router-dom"
+import { Skeleton } from "../../../components/Loader"
 const months = [
   "January",
   "February",
@@ -17,16 +22,36 @@ const months = [
 ]
 
 const Piecharts = () => {
+
+  
+  const { user } = useSelector( (state: { userReducer:UserReducerInitialState }) => state.userReducer);
+
+  const { isLoading, data, isError } = usePieQuery(user?._id!);
+
+  const order = data?.data.orderFullfillment!;
+  const categories = data?.data.productCategories!;
+  const stock = data?.data.stockAvailability!;
+  const revenue = data?.data.revenueDistribution!;
+  const ageGroup = data?.data.usersAgeGroup!;
+  const adminCustomer = data?.data.adminCustomer!;
+
+  if (isError) return <Navigate to={"/admin/dashboard"} />;
+
   return (
     <div className="admin-container">
       <AdminSidebar />
       <main className="chart-container">
       <h1>Pie & Doughnut Charts</h1>
-      <section>
+      {
+        isLoading ? (
+          <Skeleton length={20} />
+        ) : (
+          <>
+           <section>
         <div>
         <PieChart
         labels={["Processing", "Shipped", "Delivered"]}
-        data={[40,30,30]}
+        data={[order.processing, order.shipped, order.delivered]}
         backgroundColor={[
           `hsl(110,80%, 80%)`,
           `hsl(110,80%, 50%)`,
@@ -40,14 +65,16 @@ const Piecharts = () => {
       <section>
         <div>
           <DoughnutChart
-          labels={categories.map(i=>i.heading)}
-          data={categories.map(i=>i.value)}
-          backgroundColor={categories.map(
-            (i) =>
-              `hsl(${i.value*4}, ${i.value}%, 50%)`
-          )}
-          legends={false}
-          offset={[0, 0, 0, 80]}
+         labels={categories.map((i) => Object.keys(i)[0])}
+         data={categories.map((i) => Object.values(i)[0])}
+         backgroundColor={categories.map(
+          (i) =>
+            `hsl(${Object.values(i)[0] * 4}, ${
+              Object.values(i)[0]
+            }%, 50%)`
+        )}
+        legends={false}
+        offset={[0, 0, 0, 80]}
           />
         </div>
         <h2>Product Categories Ratio</h2>
@@ -56,7 +83,7 @@ const Piecharts = () => {
         <div>
           <DoughnutChart
           labels={["In Stock", "Out of Stock"]}
-          data={[70, 30]}
+          data={[stock.inStock, stock.outOfStock]}
           backgroundColor={["hsl(269,80%,40%)", "rgb(53, 162, 255)"]}
           legends={false}
           offset={[0, 80]}
@@ -76,11 +103,11 @@ const Piecharts = () => {
                     "Net Margin",
                   ]}
                   data={[
-                    20,
-                    10,
-                    10,
-                    30,
-                    30,
+                    revenue.marketingCost,
+                    revenue.discount,
+                    revenue.burnt,
+                    revenue.productionCost,
+                    revenue.netMargin,
                   ]}
                   backgroundColor={[
                     "hsl(110,80%,40%)",
@@ -103,7 +130,7 @@ const Piecharts = () => {
                     "Adult (20-40)",
                     "Older (above 40)",
                   ]}
-                  data={[10, 50, 30]}
+                  data={[ageGroup.teen, ageGroup.adult, ageGroup.old]}
                   backgroundColor={[
                     `hsl(10, ${80}%, 80%)`,
                     `hsl(10, ${80}%, 50%)`,
@@ -120,13 +147,17 @@ const Piecharts = () => {
               <div>
                 <DoughnutChart
                   labels={["Admin", "Customers"]}
-                  data={[20, 80]}
+                  data={[adminCustomer.admin, adminCustomer.customer]}
                   backgroundColor={[`hsl(335, 100%, 38%)`, "hsl(44, 98%, 50%)"]}
                   offset={[0, 50]}
                 />
               </div>
               <h2>Users Type</h2>
             </section>
+          </>
+        )
+      }
+     
 
       </main>
     </div>

@@ -9,14 +9,192 @@ import { calculatePercentage, getCategories, getChartData } from "../utils/featu
 
 
 
-const getDashboardStats = asyncHandler(async (req,res)=>{
+// const getDashboardStats = asyncHandler(async (req,res)=>{
+
+//     let stats = {};
+
+//     const key = "admin-stats";
+
+//     if(nodeCache.has(key)) stats = JSON.parse(nodeCache.get(key) as string);
+//     else{
+//         const today = new Date();
+//         const sixMonthsAgo = new Date();
+//         sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6); 
+
+//         const thisMonth = {
+//             start: new Date(today.getFullYear(), today.getMonth(), 1), // it will return first date of this month
+//             end: today // it will return today's date
+//         };
+
+//         const lastMonth = {
+//             start: new Date(today.getFullYear(), today.getMonth() - 1, 1), // it will return first date of last month//1 means first day of last month
+//             end: new Date(today.getFullYear(), today.getMonth(), 0) // it will return last date of last month//0 means last day of last month
+//         };
+
+//         const thisMonthProductsPromise = await Product.find({ //find all products that are created in this month
+//             createdAt: {
+//                 $gte: thisMonth.start,//give me all products that are created after or on the first day of this month
+//                 $lte: thisMonth.end//give me all products that are created before or on the last day of this month
+
+//                 //return the array of products that are created in this month
+//             }
+//         });
+
+//         const lastMonthProductsPromise = await Product.find({
+//             createdAt:{
+//                 $gte: lastMonth.start,
+//                 $lte: lastMonth.end
+//             }
+//         });
+
+//         const thisMonthUsersPromise = await User.find({
+//             createdAt:{
+//                 $gte: thisMonth.start,
+//                 $lte: thisMonth.end
+//             }
+//         });
+
+//         const lastMonthUsersPromise = await User.find({
+//             createdAt:{
+//                 $gte: lastMonth.start,
+//                 $lte: lastMonth.end
+//             }
+//         });
+
+//         const thisMonthOrdersPromise = await Order.find({
+//             createdAt:{
+//                 $gte: thisMonth.start,
+//                 $lte: thisMonth.end
+//             }
+//         });
+
+//         const lastMonthOrdersPromise = await Order.find({
+//             createdAt:{
+//                 $gte: lastMonth.start,
+//                 $lte: lastMonth.end
+//             }
+//         });
+
+//         const lastSixMonthOrdersPromise = await Order.find({ // it will return all orders from last 6 months
+//             createdAt:{
+//                 $gte: sixMonthsAgo,
+//                 $lte: today
+//             },
+//         });
+
+//         const latestTransactionsPromise = Order.find({})
+//         .select(["orderItems", "discount", "total", "status"])
+//         .limit(4);
+
+//         const [
+//             thisMonthProducts,
+//             thisMonthUsers,
+//             thisMonthOrders,
+//             lastMonthProducts,
+//             lastMonthUsers,
+//             lastMonthOrders,
+//             productsCount,
+//             usersCount,
+//             allOrders,
+//             lastSixMonthOrders,
+//             categories,
+//             femaleUsersCount,
+//             latestTransaction,
+//               ] = await Promise.all([
+//                                         thisMonthProductsPromise,
+//                                         thisMonthUsersPromise,
+//                                         thisMonthOrdersPromise,
+//                                         lastMonthProductsPromise,
+//                                         lastMonthUsersPromise,
+//                                         lastMonthOrdersPromise,
+//                                         Product.countDocuments(),
+//                                         User.countDocuments(),
+//                                         Order.find({}).select("total"),
+//                                         lastSixMonthOrdersPromise,
+//                                         Product.distinct("category"),
+//                                         User.countDocuments({ gender: "female"}),
+//                                         latestTransactionsPromise
+//                                     ]); //this will return all the promises in an array in the same order as they are written
+
+//         const thisMonthRevenue = thisMonthOrders.reduce((total, order) => total + (order.total || 0), 0);   //this will return the total revenue of this month by adding all the orders total
+//         // reduce has 2 parameters, 1st is a callback function and 2nd is the initial value of total here it is 0
+        
+//         const lastMonthRevenue = lastMonthOrders.reduce((total, order) => total + (order.total || 0), 0);
+
+//         const revenue = allOrders.reduce((total, order) => total + (order.total || 0), 0);
+
+//         const count = {
+//             revenue,
+//             user: usersCount,
+//             product: productsCount,
+//             order: allOrders.length,
+//         }
+
+//         const orderMonthCounts = getChartData({ length: 6, docArr: lastSixMonthOrders, today });
+
+//         const orderMonthyRevenue = getChartData({ length: 6, docArr: lastSixMonthOrders, today, property: "total" });
+
+//         const categoryCount: Record<string, number>[] = await getCategories({ categories, productsCount });
+//         // Record<string, number> is a type that defines an object with string keys and number values
+
+//         const userRatio = {
+//             male: usersCount - femaleUsersCount,
+//             female: femaleUsersCount
+//         };
+
+//         const modifiedLatestTransaction = latestTransaction.map((i) => ({
+//             _id: i._id,
+//             discount: i.discount,
+//             amount: i.total,
+//             quantity: i.orderItems.length,
+//             status: i.status,
+//           }));
+
+//         const changePercent = {
+//             revenue: calculatePercentage( //this will calculate the percentage change in revenue
+//                 thisMonthRevenue,
+//                 lastMonthRevenue
+//             ),
+
+//             product: calculatePercentage( //this will calculate the percentage change in products (ho)
+//                 thisMonthProducts.length,
+//                 lastMonthProducts.length
+//             ),
+
+//             user: calculatePercentage(
+//                 thisMonthUsers.length,
+//                 lastMonthUsers.length
+//             ),
+
+//             order: calculatePercentage(
+//                 thisMonthOrders.length,
+//                 lastMonthOrders.length
+//             )
+//         }
+
+//         stats = {
+//             categoryCount,
+//             changePercent,
+//             count,
+//             chart: {
+//                 order: orderMonthCounts,
+//                 revenue: orderMonthyRevenue
+//             },
+//             userRatio,
+//             latestTransaction: modifiedLatestTransaction
+//         }
+
+//         nodeCache.set(key, JSON.stringify(stats)); //it will store the stats in cache
+
+//     }
+
+//     return res.status(200).json(new ApiResponse(200,stats,"Dashboard stats fetched successfully"));
+// });
+
+const getDashboardStats = asyncHandler(async (_,res)=>{
 
     let stats = {};
 
-    const key = "admin-stats";
-
-    if(nodeCache.has(key)) stats = JSON.parse(nodeCache.get(key) as string);
-    else{
         const today = new Date();
         const sixMonthsAgo = new Date();
         sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6); 
@@ -46,6 +224,8 @@ const getDashboardStats = asyncHandler(async (req,res)=>{
                 $lte: lastMonth.end
             }
         });
+
+        console.log(lastMonthProductsPromise)
 
         const thisMonthUsersPromise = await User.find({
             createdAt:{
@@ -137,7 +317,7 @@ const getDashboardStats = asyncHandler(async (req,res)=>{
         const categoryCount: Record<string, number>[] = await getCategories({ categories, productsCount });
         // Record<string, number> is a type that defines an object with string keys and number values
 
-        const userRation = {
+        const userRatio = {
             male: usersCount - femaleUsersCount,
             female: femaleUsersCount
         };
@@ -149,7 +329,8 @@ const getDashboardStats = asyncHandler(async (req,res)=>{
             quantity: i.orderItems.length,
             status: i.status,
           }));
-
+          console.log(thisMonthProducts.length)
+            console.log(lastMonthProducts.length)
         const changePercent = {
             revenue: calculatePercentage( //this will calculate the percentage change in revenue
                 thisMonthRevenue,
@@ -174,18 +355,15 @@ const getDashboardStats = asyncHandler(async (req,res)=>{
 
         stats = {
             categoryCount,
+            changePercent,
             count,
             chart: {
                 order: orderMonthCounts,
                 revenue: orderMonthyRevenue
             },
-            userRation,
+            userRatio,
             latestTransaction: modifiedLatestTransaction
         }
-
-        nodeCache.set(key, JSON.stringify(stats)); //it will store the stats in cache
-
-    }
 
     return res.status(200).json(new ApiResponse(200,stats,"Dashboard stats fetched successfully"));
 });

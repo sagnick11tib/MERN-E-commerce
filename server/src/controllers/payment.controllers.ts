@@ -9,7 +9,7 @@ import { Product } from "../models/product.models.js";
 import { TempOrder } from "../models/tempOrder.models.js";
 import { Order } from "../models/order.models.js";
 
-export const RazorpayPaymentInit = asyncHandler(async (req, res) => {
+ const RazorpayPaymentInit = asyncHandler(async (req, res) => {
     const { _id } = req.query;
     const { items, shippingInfo, tax, subtotal, discount, shippingCharges, total } = req.body;
 
@@ -26,8 +26,6 @@ export const RazorpayPaymentInit = asyncHandler(async (req, res) => {
             customOrderId: randomId, // Pass custom random ID
         },
     };
-
-    console.log("BEFORE WALA", randomId);
 
     razorInstance.orders.create(options, async (err, order) => {
         if (err) {
@@ -56,7 +54,8 @@ export const RazorpayPaymentInit = asyncHandler(async (req, res) => {
     });
 });
 
-export const getKey = asyncHandler(async (req,res)=> {
+
+ const getKey = asyncHandler(async (req,res)=> {
     const key = process.env.RAZORPAY_API_KEY;
     return res.status(200).json({
         success: true,
@@ -66,8 +65,7 @@ export const getKey = asyncHandler(async (req,res)=> {
 });
 
 
-
-export const paymentVerification = asyncHandler(async (req, res) => {
+ const paymentVerification = asyncHandler(async (req, res) => {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
 
     const body = razorpay_order_id + "|" + razorpay_payment_id;
@@ -84,7 +82,6 @@ export const paymentVerification = asyncHandler(async (req, res) => {
             // Fetch Razorpay order to get the custom random ID
             const razorpayOrder = await razorInstance.orders.fetch(razorpay_order_id);
             const customOrderId = razorpayOrder?.notes!.customOrderId; // Get your custom ID
-            console.log("VERIFY WALA = ",customOrderId);
 
             // Use the custom ID to find TempOrder
             const tempOrderDetails = await TempOrder.findOne({ customOrderId });
@@ -141,8 +138,6 @@ export const paymentVerification = asyncHandler(async (req, res) => {
 });
 
 
-
-
 const createPaymentIntentStripe = asyncHandler(async (req, res)=>{
     
     const { amount } = req.body;
@@ -160,6 +155,8 @@ const createPaymentIntentStripe = asyncHandler(async (req, res)=>{
                .json(new ApiResponse(201, { clientSecret: paymentIntent.client_secret }, "Payment intent created successfully"));
 
 });
+
+
 const newCoupon = asyncHandler(async (req, res)=>{
 
     const { coupon, amount } = req.body;
@@ -170,6 +167,8 @@ const newCoupon = asyncHandler(async (req, res)=>{
 
     return res.status(201).json(new ApiResponse(201, { createdCoupon },`Coupon ${createdCoupon.code} created successfully`));
 });
+
+
 const applyDiscount = asyncHandler(async (req, res)=>{
 
     const { coupon } = req.query;
@@ -183,6 +182,8 @@ const applyDiscount = asyncHandler(async (req, res)=>{
     return res.status(200).json(new ApiResponse(200, { discount }, `Coupon ${discount.code} applied successfully`));
 
 });
+
+
 const allCoupons = asyncHandler(async (req, res)=>{
 
     const coupon = await Coupon.find({});
@@ -192,6 +193,8 @@ const allCoupons = asyncHandler(async (req, res)=>{
     return res.status(200).json(new ApiResponse(200, { coupon }, `All coupons fetched successfully`));
 
 });
+
+
 const getCoupon = asyncHandler(async (req, res)=>{
 
     const { id } = req.params;
@@ -204,6 +207,8 @@ const getCoupon = asyncHandler(async (req, res)=>{
 
     return res.status(200).json(new ApiResponse(200, { coupon }, `Coupon ${coupon.code} fetched successfully`));
 });
+
+
 const updateCoupon = asyncHandler(async (req, res)=>{
 
     const { id } = req.params;
@@ -218,6 +223,8 @@ const updateCoupon = asyncHandler(async (req, res)=>{
 
     return res.status(200).json(new ApiResponse(200, { updatedCoupon }, `Coupon ${updatedCoupon.code} updated successfully`));
 });
+
+
 const deleteCoupon = asyncHandler(async (req, res)=>{
 
     const { id } = req.params;
@@ -232,4 +239,5 @@ const deleteCoupon = asyncHandler(async (req, res)=>{
 
 });
 
-export { createPaymentIntentStripe, newCoupon, applyDiscount, allCoupons, getCoupon, updateCoupon, deleteCoupon };
+
+export { createPaymentIntentStripe, newCoupon, applyDiscount, allCoupons, getCoupon, updateCoupon, deleteCoupon, RazorpayPaymentInit, getKey, paymentVerification };
