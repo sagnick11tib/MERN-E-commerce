@@ -24,6 +24,8 @@ export const store = configureStore({
 
 });
 
+export type RootState = ReturnType<typeof store.getState>;
+
 
 
 //If User already logged in then the user data is stored in the redux store and the user is redirected to the home page

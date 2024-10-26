@@ -39,7 +39,7 @@ const ProductManagement = () => {
   const [ updateProduct ] = useUpdateProductMutation();
   const [ deleteProduct ] = useDeleteProductMutation();
 
-  const mainPhotoFile = useFileHandler("single",5,1);
+  const mainPhotoFile = useFileHandler("single",5,1); //it gave us the file and preview
 
   const subPhotosFiles = useFileHandler("multiple",5,5);
 
@@ -130,7 +130,6 @@ const ProductManagement = () => {
             <div>
               <label>Name</label>
               <input
-              
               type="text"
               placeholder="Name"
               value={nameUpdate}
@@ -141,7 +140,6 @@ const ProductManagement = () => {
             <div>
               <label>Price</label>
               <input
-              
               type="number"
               placeholder="Price"
               value={priceUpdate}
@@ -152,7 +150,6 @@ const ProductManagement = () => {
             <div>
               <label>Stock</label>
               <input
-                
                 type="number"
                 placeholder="Stock"
                 value={stockUpdate}
