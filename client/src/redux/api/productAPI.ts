@@ -1,5 +1,5 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { LatestProductsResponse, AllProductsResponse, ProductDetailsResponse, MessageResponse, UpdateProductRequest, DeleteProductRequest, CategoriesResponse, SearchProductsResponse, SearchProductsRequest, NewProductRequest } from "../../types/api-types";
+import { LatestProductsResponse, AllProductsResponse, ProductDetailsResponse, MessageResponse, UpdateProductRequest, DeleteProductRequest, CategoriesResponse, SearchProductsResponse, SearchProductsRequest, NewProductRequest, AllReviewsResponse, NewReviewRequest, DeleteReviewRequest } from "../../types/api-types";
 
 export const productAPI = createApi({
     reducerPath: "productAPI",
@@ -59,6 +59,30 @@ export const productAPI = createApi({
             }),
             invalidatesTags: ["product"]
         }),
+        allReviewsOfProduct: builder.query<AllReviewsResponse,string>({
+            query: (id)=> `reviews/${id}`,
+            providesTags: ["product"]
+        }),
+
+        newReview: builder.mutation<MessageResponse, NewReviewRequest>({
+            query: ({ comment, rating, productId, userId }) => ({
+                url: `review/new/${productId}?_id=${userId}`,
+                method: "POST",
+                body: { comment, rating },
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            }),
+            invalidatesTags: ["product"]
+        }),
+
+        deleteReview: builder.mutation<MessageResponse, DeleteReviewRequest>({
+            query: ({ reviewId, userId }) => ({
+              url: `/review/${reviewId}?_id=${userId}`,
+              method: "DELETE",
+            }),
+            invalidatesTags: ["product"],
+          }),
     })
 });
 
@@ -70,6 +94,9 @@ export const { useLatestProductsQuery,
                useCategoriesQuery, 
                useSearchProductsQuery,
                useNewProductMutation,
+               useAllReviewsOfProductQuery,
+               useNewReviewMutation,
+               useDeleteReviewMutation,
                
             } = productAPI;
 

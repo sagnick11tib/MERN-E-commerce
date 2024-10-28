@@ -1,7 +1,8 @@
 import { OrderItemType } from "../types/types.js";
 import { Product } from "../models/product.models.js";
 import { ApiError } from "./ApiError.js";
-import { Document } from "mongoose";
+import mongoose, { Document } from "mongoose";
+import { Review } from "../models/review.models.js";
 
 export const reduceStock = async (orderItems: OrderItemType[]) => {
 
@@ -84,6 +85,27 @@ export const getChartData = ({
     });
   
     return data;
+  };
+
+
+
+
+  export const findAverageRatings = async (
+    productId: mongoose.Types.ObjectId
+  ) => {
+    let totalRating = 0;
+  
+    const reviews = await Review.find({ product: productId });
+    reviews.forEach((review) => {
+      totalRating += review.rating;
+    });
+  
+    const averateRating = Math.floor(totalRating / reviews.length) || 0;
+  
+    return {
+      numOfReviews: reviews.length,
+      ratings: averateRating,
+    };
   };
 
 

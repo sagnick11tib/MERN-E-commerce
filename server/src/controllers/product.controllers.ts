@@ -9,6 +9,10 @@ import { rm } from "fs";
 import { faker } from "@faker-js/faker";
 import { nodeCache } from "../app.js";
 import { invalidateCache } from "../utils/invalidCache.js";
+import { Review } from "../models/review.models.js";
+import { User } from "../models/user.models.js";
+import { findAverageRatings } from "../utils/features.js";
+import { redis, redisTTL } from "../index.js";
 
 
 
@@ -104,7 +108,6 @@ const checkFileComeOrNot = asyncHandler(async (req: Request, res: Response, next
     return res.status(200).json(new ApiResponse(200, { message: "File received" }, "File received successfully"));
 });
 
-//old wala
 const newProduct = asyncHandler(async (req: Request<{}, {}, NewProductRequestBody>, res: Response) => {
 
   // Explicitly type `req.files` to ensure TypeScript knows the expected structure
@@ -184,24 +187,23 @@ const newProduct = asyncHandler(async (req: Request<{}, {}, NewProductRequestBod
   return res.status(201).json(new ApiResponse(201, { product }, "Product created successfully"));
 });
 
-
-
 const getLatestProducts = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     ///Revalidate on New , update or delete of product & on new Order
-
+    
     let latestProducts;
 
-    if( nodeCache.has( "latest-products" ) ) {
+    latestProducts = await redis.get("latest-products");//get the latest products from the cache
 
-        latestProducts = JSON.parse(nodeCache.get("latest-products") as string);
+    if (latestProducts) latestProducts = JSON.parse(latestProducts); // if the products are present in the cache then parse the JSON string to normal JSON object
 
-    } else {
-        // throw new Error("No products found");
-        latestProducts = await Product.find().sort({ createdAt: -1 }).limit(5); //-1 for descending order and 1 for ascending order
+    else {
 
-        if ( !latestProducts ) throw new ApiError(404, "No products found");
-      
-        nodeCache.set( "latest-products", JSON.stringify(latestProducts) ); // cache the latest products for 1 hour
+      latestProducts = await Product.find().sort({ createdAt: -1 }).limit(5); //-1 for descending order and 1 for ascending order
+
+      if ( !latestProducts ) throw new ApiError(404, "No products found");
+
+      await redis.setex("latest-products", redisTTL, JSON.stringify(latestProducts));//convert the JSON object to JSON string and set it in the cache with a TTL of 4 hours
+
     }
 
     return res.status(200).json(new ApiResponse(200, { latestProducts }, "Latest products fetched successfully"));
@@ -212,16 +214,17 @@ const getAllCategories = asyncHandler(async (req:Request, res:Response, next:Nex
 
     let categories;
 
-    if(nodeCache.has("categories")) categories = JSON.parse(nodeCache.get("categories") as string)
-    else{
-         categories = await Product.distinct("category") // it find all the distinct categories from the category field of the product model
-        //distinct is a method of mongoose which is used to find all the distinct values of a field in a collection
-    
-        if (!categories) throw new ApiError(404, "No categories found");
+    categories = await redis.get("categories");
 
-        nodeCache.set("categories", JSON.stringify(categories));
+    if (categories) categories = JSON.parse(categories);
+    else {
+      categories = await Product.distinct("category") // it find all the distinct categories from the category field of the product model
+      //distinct is a method of mongoose which is used to find all the distinct values of a field in a collection
+  
+      if (!categories) throw new ApiError(404, "No categories found");
+
+      await redis.setex("categories", redisTTL, JSON.stringify(categories));
     }
-   
 
     return res.status(200).json(new ApiResponse(200, { categories }, "Categories fetched successfully"));
 
@@ -231,14 +234,18 @@ const getAdminProducts = asyncHandler(async (req:Request, res:Response, next:Nex
 
     let products;
 
-    if(nodeCache.has("all-products")) products = JSON.parse(nodeCache.get("all-products") as string) 
+    products = await redis.get("all-products");
+
+    if(products) products = JSON.parse(products);
     else {
-         products = await Product.find();
 
-        if (!products) throw new ApiError(404, "No products found");
+      products = await Product.find();
 
-        nodeCache.set("all-products", JSON.stringify(products))
+      if (!products) throw new ApiError(404, "No products found");
+
+      await redis.setex("all-products", redisTTL, JSON.stringify(products));
     }
+
 
     return res.status(200).json(new ApiResponse(200, { products }, "Products fetched successfully"));
 });
@@ -251,15 +258,17 @@ const getSingleProduct = asyncHandler(async (req:Request, res:Response)=> {
 
      const key = `product-${id}`;
 
+     product = await redis.get(key);
 
-     if(nodeCache.has(key)) product = JSON.parse(nodeCache.get(key) as string)
+
+     if(product) product = JSON.parse(product); 
      else{
 
          product = await Product.findById(id);
 
          if (!product) throw new ApiError(404, "Product not found");
 
-         nodeCache.set(key,JSON.stringify(product))
+        await redis.setex(key, redisTTL, JSON.stringify(product));
      }
 
     return res.status(200).json(new ApiResponse(200, { product }, "Product fetched successfully"));
@@ -373,7 +382,7 @@ const updateProduct = asyncHandler(async (req: Request, res: Response, next: Nex
     return res
       .status(200)
       .json(new ApiResponse(200, { updatedProduct }, `${updatedFieldsMessage} updated successfully`));
-  });
+});
   
 
 // const updateProduct = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
@@ -599,6 +608,19 @@ const getAllProducts = asyncHandler(async (req:Request<{}, {}, SearchRequestQuer
 
     const page = Number(req.query.page) || 1;
 
+    const key = `products-${search}-${sort}-${category}-${price}-${page}`;
+
+    let products;
+    let totalPage;
+
+    const cachedData = await redis.get(key);
+
+    if(cachedData) {
+      const data = JSON.parse(cachedData);
+      products = data.products;
+      totalPage = data.totalPage;
+    }else{
+
     const limit = Number(process.env.PRODUCT_PER_PAGE) || 10; // 10 products per page
 
     const skip = (page - 1) * limit; // skip the products which are already shown on the previous page // 1st page skip 0 products, 2nd page skip 10 products, 3rd page skip 20 products and so on
@@ -629,20 +651,182 @@ const getAllProducts = asyncHandler(async (req:Request<{}, {}, SearchRequestQuer
                                          .skip(skip); // skip the products which are already shown on the previous page
 
 
-    const [ products, filteredOnlyProduct  ] = await Promise.all([  // Promise.all is used to run multiple promises at the same time
+    const [ productsFetched, filteredOnlyProduct  ] = await Promise.all([  // Promise.all is used to run multiple promises at the same time
         productsPromise, // find all the products which are filtered according to the search query and limit and skip so that we can get the products for the current page
         Product.find(baseQuery), // find all the products which are filtered according to the search query but without limit and skip so that we can get the total number of products
     ]);
 
-    const totalPage = Math.ceil(filteredOnlyProduct.length / limit);
+     totalPage = Math.ceil(filteredOnlyProduct.length / limit);
 
-    if ( products.length < 1 ) return res.status(201).json(new ApiResponse(201, { products, totalPage }, "No products found"));
+    if ( productsFetched.length < 1 ) return res.status(201).json(new ApiResponse(201, { products, totalPage }, "No products found"));
 
-    if ( !products || !filteredOnlyProduct ) return res.status(404).json(new ApiResponse(404, { products, totalPage }, "No products found according to the search query"));
+    if ( !productsFetched || !filteredOnlyProduct ) return res.status(404).json(new ApiResponse(404, { products, totalPage }, "No products found according to the search query"));
 
+    products = productsFetched;
+
+    await redis.setex(key, redisTTL, JSON.stringify({ products, totalPage }));
+      
+      }
     return res.status(200).json(new ApiResponse(200, { products, totalPage }, "Products fetched successfully"));
 
 });
+
+const allReviewsOfProduct = asyncHandler(async (req:Request, res:Response)=> {
+    
+    let reviews;
+
+    const key = `reviews-${req.params.id}`;
+
+    reviews = await redis.get(key);
+
+    if(reviews) reviews = JSON.parse(reviews);
+    else{
+
+      reviews = await Review.find({
+        product: req.params.id
+    })
+      .populate("user", "name photo")
+      .sort({ updatedAt: -1 });
+
+    if (!reviews) throw new ApiError(404, "No reviews found");
+
+    await redis.setex(key, redisTTL, JSON.stringify(reviews));
+
+    }
+
+    return res.status(200).json(new ApiResponse(200, { reviews }, "Reviews fetched successfully"));
+});
+
+const newReview = asyncHandler(async (req, res )=> {
+
+  const user = await User.findById(req.query._id);
+
+  if(!user) throw new ApiError(404, "User not found");
+
+  const product = await Product.findById(req.params.productId);
+
+  if(!product) throw new ApiError(404, "Product not found");
+
+  const { comment , rating } = req.body;
+
+  const alreadyReviewed = await Review.findOne({
+      user: user._id,
+      product: product._id
+  });
+
+  if (alreadyReviewed) {
+    alreadyReviewed.comment = comment;
+    alreadyReviewed.rating = rating;
+
+    await alreadyReviewed.save();
+  }else{
+
+    await Review.create({
+      comment,
+      rating,
+      user: user._id,
+      product: product._id
+    });
+  }
+
+  const { ratings, numOfReviews } = await findAverageRatings(product._id);
+
+  product.ratings = ratings;
+  product.numOfReviews = numOfReviews;
+
+  await product.save();
+
+  return res.status(alreadyReviewed ? 200 : 201).json( new ApiResponse(
+    alreadyReviewed ? 200 : 201,
+    {},
+    alreadyReviewed ? "Review updated successfully" : "Review added successfully"
+  ));
+});
+
+const deleteReview = asyncHandler(async (req:Request, res:Response)=> {
+
+  const user = await User.findById(req.query._id);
+
+  if (!user) throw new ApiError(404, "Not logged in");
+
+  const review = await Review.findById(req.params.reviewId);
+
+  if (!review) throw new ApiError(404, "Review not found");
+
+  const isAuthenticUser = review.user.toString() === user._id.toString();
+
+  if (!isAuthenticUser) throw new ApiError(401, "You are not authorized to delete this review");
+
+  await review.deleteOne();
+
+  const product = await Product.findById(review.product);
+
+  if (!product) throw new ApiError(404, "Product not found");
+
+  const { ratings, numOfReviews } = await findAverageRatings(product._id);
+
+  product.ratings = ratings;
+
+  product.numOfReviews = numOfReviews;
+
+  await product.save();
+
+  return res.status(200).json(new ApiResponse(200, {}, "Review deleted successfully"));
+
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // const generateRandomProducts = async (count: number = 10): Promise<void> => {
 //     const products = [];
@@ -682,4 +866,4 @@ const getAllProducts = asyncHandler(async (req:Request<{}, {}, SearchRequestQuer
 // //generateRandomProducts(40);
 // //deleteRandomsProducts(38);
 
-export { newProduct, checkFileComeOrNot, getLatestProducts, deleteProduct, getAllCategories, getAdminProducts, getAllProducts, getSingleProduct, updateProduct };
+export { newProduct, checkFileComeOrNot, getLatestProducts, deleteProduct, getAllCategories, getAdminProducts, getAllProducts, getSingleProduct, updateProduct, allReviewsOfProduct, newReview, deleteReview };

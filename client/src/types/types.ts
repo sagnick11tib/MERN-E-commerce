@@ -14,9 +14,11 @@ export interface Product {
     stock: number;
     description: string;
     category: string;
-    mainPhoto: string;
+    mainPhoto: {url: string}
     subPhotos?: string;
     _id: string;
+    ratings: number;
+    numOfReviews: number;
 }
 
 export type CartItem = {
@@ -131,6 +133,23 @@ export type Order = {
     products: number[];
     discount: number[];
     revenue: number[];
+  };
+
+  export type Review = {
+    _id: string;
+    rating: number;
+    comment: string;
+    product: string;
+    user: {
+      name: string;
+      photo: string;
+      _id: string;
+    };
+    likedBy?: string[];
+    reviewPhotos?: {
+      public_id: string;
+      url: string;
+    }[];
   };
 
     

@@ -1,5 +1,5 @@
 
-import { Bar, CartItem, Line, Order, Pie, Product, ShippingInfo, Stats, User } from "./types";
+import { Bar, CartItem, Line, Order, Pie, Product, Review, ShippingInfo, Stats, User } from "./types";
 
 export type CustomError = {
     status: number;
@@ -148,6 +148,26 @@ export type UpdateOrderRequest = {
     data: Line;
   };
 
+  export type AllReviewsResponse = {
+    success: boolean;
+    data: {
+        reviews: Review[];
+    }
+  }
+
+
+  export type NewReviewRequest = {
+    rating: number;
+    comment: string;
+    userId?: string;
+    productId: string;
+    reviewPhotos?: File[];
+  };
+  
+  export type DeleteReviewRequest = {
+    userId?: string;
+    reviewId: string;
+  };
 
 
 

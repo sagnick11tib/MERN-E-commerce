@@ -1,4 +1,4 @@
-import { stripe } from "./config/stripe.js";
+
 import NodeCache from "node-cache";
 import cors from "cors";
 import morgan from "morgan";
@@ -6,7 +6,6 @@ export const nodeCache = new NodeCache( //
    
 );
 import express from "express";
-import errorHandler from "./middlewares/error.middlewares.js";
 const app = express();
 
 
@@ -26,6 +25,8 @@ import paymentRoutes from "./routes/payment.routes.js"
 import dashboardRoutes from "./routes/stats.routes.js";
 import { ApiError } from "./utils/ApiError.js";
 import { asyncHandler } from "./utils/asyncHandler.js";
+import { redis } from "./index.js";
+
 
 //routes declaration
 app.use("/api/v1/user", userRoutes);
@@ -48,6 +49,10 @@ app.get("/", (_, res) => {
      throw new ApiError(404, "Not Found");
   }));
 
-
+  app.get("/api/v1/redistest", asyncHandler(async (req, res) => { 
+    redis.set("test", "test");
+    const test = await redis.get("test");
+    return res.json({ test });
+  }));
 
 export { app };
