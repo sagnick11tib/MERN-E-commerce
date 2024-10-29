@@ -1,14 +1,19 @@
 import { nodeCache } from "../app.js";
+import { redis } from "../index.js";
 import { InvalidateCacheProps } from "../types/types.js"
 
-export const invalidateCache = ({ 
+export const invalidateCache = async ({ 
                                         product,
                                         order,
                                         admin,
+                                        review,
                                         userId,
                                         orderId,
                                         productId
                                       }: InvalidateCacheProps)=> {
+ if (review) {
+     await redis.del([`reviews-${productId}`]);
+    }
     if(product) {
         const productKeys : string[] = [ 
             "latest-products", 
@@ -23,15 +28,15 @@ export const invalidateCache = ({
             productId.forEach((i)=> productKeys.push(`product-${i}`))
         }
 
-         nodeCache.del(productKeys);
+         await redis.del(productKeys);
     }
     if(order) {
         const orderKeys: string[] = ["all-orders", `myorders_${userId}`, `order-${orderId}`];
 
-        nodeCache.del(orderKeys)
+        await redis.del(orderKeys)
     }
     if(admin) {
-        nodeCache.del([ 
+        await redis.del([ 
             "admin-stats",
             "admin-pie-charts",
             "admin-bar-charts",

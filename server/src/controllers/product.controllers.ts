@@ -3,104 +3,13 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { BaseQuery, NewProductRequestBody, SearchRequestQuery } from "../types/types.js";
-import { uploadOnCloudinary, uploadOnCloudinaryNotDelete, deleteOnCloudinary, uploadBase64Image } from "../utils/cloudinary.js";
+import {  uploadOnCloudinaryNotDelete, deleteOnCloudinary, uploadBase64Image } from "../utils/cloudinary.js";
 import { Product } from "../models/product.models.js";
-import { rm } from "fs";
-import { faker } from "@faker-js/faker";
-import { nodeCache } from "../app.js";
 import { invalidateCache } from "../utils/invalidCache.js";
 import { Review } from "../models/review.models.js";
 import { User } from "../models/user.models.js";
 import { findAverageRatings } from "../utils/features.js";
 import { redis, redisTTL } from "../index.js";
-
-
-
-// const newProduct = asyncHandler(async (req: Request<{}, {}, NewProductRequestBody>, res: Response) => {
-//     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-
-//     const { name, price, description, category, stock } = req.body;
-
-//     // Validate form fields
-//     if (!name || !price || !description || !category || !stock) {
-//         // Delete uploaded files if fields are missing
-//         if (files?.['mainPhoto'] && files['mainPhoto'].length > 0) {
-//             await deleteOnCloudinary(files['mainPhoto'][0].path);
-//         }
-//         if (files?.['subPhotos'] && files['subPhotos'].length > 0) {
-//             for (const file of files['subPhotos']) {
-//                 await deleteOnCloudinary(file.path);
-//             }
-//         }
-//         throw new ApiError(400, "Please fill all fields");
-//     }
-
-//     // Ensure mainPhoto is provided
-//     if (!files?.['mainPhoto'] || files['mainPhoto'].length < 1) {
-//         throw new ApiError(400, "Please upload a main photo");
-//     }
-
-//     // Ensure at least one sub-photo is uploaded
-//     if (!files?.['subPhotos'] || files['subPhotos'].length < 1) {
-//         throw new ApiError(400, "Please upload at least one sub-photo");
-//     }
-
-//     // Limit to max 5 sub-photos
-//     if (files['subPhotos'].length > 5) {
-//         throw new ApiError(400, "Please upload a maximum of 5 sub-photos");
-//     }
-
-//     // Function to upload image
-//     const uploadImage = async (image: any) => {
-//         if (image.startsWith('data:image/')) {
-//             // Handle base64 image
-//             const base64Image = image.split(';base64,').pop();
-//             return await uploadBase64Image(base64Image); // Implement this function to upload base64 image
-//         } else {
-//             // Handle file upload
-//             return await uploadOnCloudinaryNotDelete(image.path);
-//         }
-//     };
-
-//     // Upload main photo
-//     const mainPhotoUpload = await uploadImage(files['mainPhoto'][0].path || files['mainPhoto'][0]);
-//     if (!mainPhotoUpload) {
-//         throw new ApiError(500, "Error in uploading main photo");
-//     }
-
-//     const mainPhoto = {
-//         public_id: mainPhotoUpload.public_id,
-//         url: mainPhotoUpload.url,
-//     };
-
-//     // Upload sub-photos
-//     const subPhotos = await Promise.all(
-//         files['subPhotos'].map(async (file) => {
-//             return await uploadImage(file.path || file);
-//         })
-//     );
-
-//     // Create product in the database
-//     const product = await Product.create({
-//         name,
-//         price,
-//         description,
-//         category,
-//         stock,
-//         mainPhoto,
-//         subPhotos,
-//     });
-
-//     if (!product) {
-//         throw new ApiError(500, "Error in creating product");
-//     }
-
-//     // Invalidate cache if necessary
-//     invalidateCache({ product: true, admin: true });
-
-//     // Send response
-//     return res.status(201).json(new ApiResponse(201, { product }, "Product created successfully"));
-// });
 
 
 const checkFileComeOrNot = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
@@ -181,7 +90,7 @@ const newProduct = asyncHandler(async (req: Request<{}, {}, NewProductRequestBod
   }
 
   // Invalidate cache if necessary
-  invalidateCache({ product: true, admin: true });
+  await invalidateCache({ product: true, admin: true });
 
   // Send response
   return res.status(201).json(new ApiResponse(201, { product }, "Product created successfully"));
@@ -202,7 +111,7 @@ const getLatestProducts = asyncHandler(async (req: Request, res: Response, next:
 
       if ( !latestProducts ) throw new ApiError(404, "No products found");
 
-      await redis.setex("latest-products", redisTTL, JSON.stringify(latestProducts));//convert the JSON object to JSON string and set it in the cache with a TTL of 4 hours
+      await redis.setex("latest-products", 100, JSON.stringify(latestProducts));//convert the JSON object to JSON string and set it in the cache with a TTL of 4 hours
 
     }
 
@@ -223,7 +132,7 @@ const getAllCategories = asyncHandler(async (req:Request, res:Response, next:Nex
   
       if (!categories) throw new ApiError(404, "No categories found");
 
-      await redis.setex("categories", redisTTL, JSON.stringify(categories));
+      await redis.setex("categories", 30, JSON.stringify(categories));
     }
 
     return res.status(200).json(new ApiResponse(200, { categories }, "Categories fetched successfully"));
@@ -243,7 +152,7 @@ const getAdminProducts = asyncHandler(async (req:Request, res:Response, next:Nex
 
       if (!products) throw new ApiError(404, "No products found");
 
-      await redis.setex("all-products", redisTTL, JSON.stringify(products));
+      await redis.setex("all-products", 60, JSON.stringify(products));
     }
 
 
@@ -268,7 +177,7 @@ const getSingleProduct = asyncHandler(async (req:Request, res:Response)=> {
 
          if (!product) throw new ApiError(404, "Product not found");
 
-        await redis.setex(key, redisTTL, JSON.stringify(product));
+        await redis.setex(key, 60, JSON.stringify(product));
      }
 
     return res.status(200).json(new ApiResponse(200, { product }, "Product fetched successfully"));
@@ -371,7 +280,11 @@ const updateProduct = asyncHandler(async (req: Request, res: Response, next: Nex
     );
   
     // Invalidate cache if necessary
-    invalidateCache({ product: true, productId: String(product._id), admin: true });
+    await invalidateCache({ 
+      product: true, 
+      productId: String(product._id), 
+      admin: true
+     });
   
     // Generate dynamic response message
     const updatedFieldsMessage = updatedFields.length > 1
@@ -383,186 +296,6 @@ const updateProduct = asyncHandler(async (req: Request, res: Response, next: Nex
       .status(200)
       .json(new ApiResponse(200, { updatedProduct }, `${updatedFieldsMessage} updated successfully`));
 });
-  
-
-// const updateProduct = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-//     const { id } = req.params;
-//     const { name, price, stock, category, description } = req.body;
-  
-//     // Find product by ID
-//     const product = await Product.findById(id);
-//     if (!product) throw new ApiError(404, "Product not found");
-  
-//     // Initialize an empty `updates` object to store changes
-//     const updates: any = {};
-  
-//     // Update text fields if provided
-//     if (name) updates.name = name;
-//     if (price) updates.price = price;
-//     if (stock) updates.stock = stock;
-//     if (category) updates.category = category;
-//     if (description) updates.description = description;
-  
-//     // Ensure `req.files` exists and contains the fields we need (optional updates)
-//     if (req.files) {
-//       // Get main photo and sub-photos from `req.files`
-//       const mainPhotoFile = (req.files as { [fieldname: string]: Express.Multer.File[] })["mainPhoto"]?.[0];
-//       const subPhotosFiles = (req.files as { [fieldname: string]: Express.Multer.File[] })["subPhotos"];
-  
-//       // Upload new main photo if provided
-//       if (mainPhotoFile) {
-//         const mainPhotoUpload = await uploadOnCloudinaryNotDelete(mainPhotoFile.path);
-//         if (!mainPhotoUpload) throw new ApiError(500, "Error in uploading main photo");
-  
-//         updates.mainPhoto = {
-//           public_id: mainPhotoUpload.public_id,
-//           url: mainPhotoUpload.url,
-//         };
-//       }
-  
-//       // Upload new sub-photos if provided
-//       if (subPhotosFiles && subPhotosFiles.length > 0) {
-//         if (subPhotosFiles.length > 5) throw new ApiError(400, "Please upload a maximum of 5 sub-photos");
-  
-//         const subPhotos = await Promise.all(
-//           subPhotosFiles.map(async (file) => {
-//             const uploadPhoto = await uploadOnCloudinaryNotDelete(file.path);
-//             if (!uploadPhoto) {
-//               throw new ApiError(500, "Error in uploading sub-photos");
-//             }
-//             return { public_id: uploadPhoto.public_id, url: uploadPhoto.url };
-//           })
-//         );
-  
-//         updates.subPhotos = subPhotos;
-//       }
-//     }
-  
-//     // Update the product in the database
-//     const updatedProduct = await Product.findByIdAndUpdate(id, { $set: updates }, { new: true });
-//     if (!updatedProduct) throw new ApiError(500, "Error in updating product");
-  
-//     // Delete old photos from Cloudinary if new photos are uploaded
-//     const oldPhotoIds = [];
-  
-//     if (updates.mainPhoto && product.mainPhoto?.public_id) {
-//       oldPhotoIds.push(product.mainPhoto.public_id);
-//     }
-  
-//     if (updates.subPhotos && product.subPhotos && Array.isArray(product.subPhotos)) {
-//       product.subPhotos.forEach((photo) => {
-//         if (photo.public_id) {
-//           oldPhotoIds.push(photo.public_id);
-//         }
-//       });
-//     }
-  
-//     await Promise.all(
-//       oldPhotoIds.map(async (public_id) => {
-//         await deleteOnCloudinary(public_id);
-//       })
-//     );
-  
-//     // Invalidate cache if necessary
-//     invalidateCache({ product: true, productId: String(product._id), admin: true });
-  
-//     // Send response
-//     return res.status(200).json(new ApiResponse(200, { updatedProduct }, "Product updated successfully"));
-//   });
-
-  //COLU
-
-// const updateProduct = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-
-//   const { id } = req.params;
-
-//   const { name, price, stock, category, description } = req.body;
-
-//   //////////////////////////if (!name || !price || !description || !category || !stock)  throw new ApiError(400, "Please fill all fields");
-  
-//   // Ensure `req.files` exists and contains the fields we need
-//   ///////////////////////if (!req.files || !("mainPhoto" in req.files) || !("subPhotos" in req.files)) throw new ApiError(400, "Please upload photos correctly");
-  
-//   // Get main photo and sub-photos from `req.files`
-//   const mainPhotoFile = (req.files as { [fieldname: string]: Express.Multer.File[] })["mainPhoto"]?.[0];
-
-//   const subPhotosFiles = (req.files as { [fieldname: string]: Express.Multer.File[] })["subPhotos"];
-
-//   //////////////////if (!mainPhotoFile)  throw new ApiError(400, "Please upload a main photo");
-  
-//   //////////////////if (!subPhotosFiles || subPhotosFiles.length < 1)  throw new ApiError(400, "Please upload at least one sub-photo");
-  
-//   //////////////////if (subPhotosFiles.length > 5) throw new ApiError(400, "Please upload a maximum of 5 sub-photos");
-
-//   // Find product by ID
-//   const product = await Product.findById(id);
-
-//   if (!product) throw new ApiError(404, "Product not found");
-
-//   // Upload new photos to Cloudinary
-//   const mainPhotoUpload = await uploadOnCloudinaryNotDelete(mainPhotoFile.path);
-
-//   if (!mainPhotoUpload) throw new ApiError(500, "Error in uploading main photo");
-  
-//   const mainPhoto = {
-//       public_id: mainPhotoUpload.public_id,
-//       url: mainPhotoUpload.url,
-//   };
-
-//   const subPhotos = await Promise.all(
-//       subPhotosFiles.map(async (file) => {
-//           const uploadPhoto = await uploadOnCloudinaryNotDelete(file.path);
-//           if (!uploadPhoto) {
-//               throw new ApiError(500, "Error in uploading sub-photos");
-//           }
-//           return { public_id: uploadPhoto.public_id, url: uploadPhoto.url };
-//       })
-//   );
-
-//   // Update the product in the database
-//   const updatedProduct = await Product.findByIdAndUpdate(
-//       id,
-//       {
-//           $set: {
-//               name,
-//               price,
-//               description,
-//               category,
-//               stock,
-//               mainPhoto,
-//               subPhotos,
-//           },
-//       },
-//       { new: true }
-//   );
-
-//   if (!updatedProduct) throw new ApiError(500, "Error in updating product");
-  
-//   // Delete old photos from Cloudinary
-//   const oldPhotoIds = [];
-
-//   if (product.mainPhoto?.public_id) oldPhotoIds.push(product.mainPhoto.public_id);
-  
-//   if (product.subPhotos && Array.isArray(product.subPhotos)) {
-//       product.subPhotos.forEach((photo) => {
-//           if (photo.public_id) {
-//               oldPhotoIds.push(photo.public_id);
-//           }
-//       });
-//   }
-
-//   await Promise.all(
-//       oldPhotoIds.map(async (public_id) => {
-//           await deleteOnCloudinary(public_id);
-//       })
-//   );
-
-//   // Invalidate cache if necessary
-//   invalidateCache({ product: true, productId: String(product._id), admin: true });
-
-//   // Send response
-//   return res.status(200).json(new ApiResponse(200, { updatedProduct }, "Product updated successfully"));
-// });
 
 const deleteProduct = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
 
@@ -596,7 +329,11 @@ const deleteProduct = asyncHandler(async (req: Request, res: Response, next: Nex
   await product.deleteOne();
 
   // Invalidate cache if necessary
-  invalidateCache({ product: true, productId: String(product._id), admin: true });
+  await invalidateCache({ 
+    product: true, 
+    productId: String(product._id), 
+    admin: true
+   });
 
   // Send response
   return res.status(200).json(new ApiResponse(200, {}, "Product deleted successfully"));
@@ -656,15 +393,14 @@ const getAllProducts = asyncHandler(async (req:Request<{}, {}, SearchRequestQuer
         Product.find(baseQuery), // find all the products which are filtered according to the search query but without limit and skip so that we can get the total number of products
     ]);
 
-     totalPage = Math.ceil(filteredOnlyProduct.length / limit);
-
     if ( productsFetched.length < 1 ) return res.status(201).json(new ApiResponse(201, { products, totalPage }, "No products found"));
 
     if ( !productsFetched || !filteredOnlyProduct ) return res.status(404).json(new ApiResponse(404, { products, totalPage }, "No products found according to the search query"));
 
     products = productsFetched;
+    totalPage = Math.ceil(filteredOnlyProduct.length / limit);
 
-    await redis.setex(key, redisTTL, JSON.stringify({ products, totalPage }));
+    await redis.setex(key, 30, JSON.stringify({ products, totalPage }));
       
       }
     return res.status(200).json(new ApiResponse(200, { products, totalPage }, "Products fetched successfully"));
@@ -690,7 +426,7 @@ const allReviewsOfProduct = asyncHandler(async (req:Request, res:Response)=> {
 
     if (!reviews) throw new ApiError(404, "No reviews found");
 
-    await redis.setex(key, redisTTL, JSON.stringify(reviews));
+    await redis.setex(key, 30, JSON.stringify(reviews));
 
     }
 
@@ -736,6 +472,13 @@ const newReview = asyncHandler(async (req, res )=> {
 
   await product.save();
 
+  await invalidateCache({
+    product: true,
+    productId: String(product._id),
+    admin: true,
+    review: true
+  })
+
   return res.status(alreadyReviewed ? 200 : 201).json( new ApiResponse(
     alreadyReviewed ? 200 : 201,
     {},
@@ -770,6 +513,12 @@ const deleteReview = asyncHandler(async (req:Request, res:Response)=> {
   product.numOfReviews = numOfReviews;
 
   await product.save();
+
+  await invalidateCache({
+    product: true,
+    productId: String(product._id),
+    admin: true
+  })
 
   return res.status(200).json(new ApiResponse(200, {}, "Review deleted successfully"));
 

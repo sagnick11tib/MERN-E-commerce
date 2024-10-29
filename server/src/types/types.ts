@@ -42,6 +42,7 @@ export interface NewProductRequestBody {
     userId?: string;
     orderId?: string;
     productId?: string | string[];
+    reviewId?: string
   };
 
   export type ShippingInfoType = {

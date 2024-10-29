@@ -6,6 +6,7 @@ import { Product } from "../models/product.models.js";
 import { Order } from "../models/order.models.js";
 import { nodeCache } from "../app.js";
 import { calculatePercentage, getCategories, getChartData } from "../utils/features.js";
+import { redis, redisTTL } from "../index.js";
 
 
 
@@ -193,8 +194,15 @@ import { calculatePercentage, getCategories, getChartData } from "../utils/featu
 
 const getDashboardStats = asyncHandler(async (_,res)=>{
 
-    let stats = {};
+    let stats: any = {};
 
+    const key = `admin-stats`;
+
+    stats = await redis.get(key);
+
+    if (stats) stats = JSON.parse(stats);
+
+    else {
         const today = new Date();
         const sixMonthsAgo = new Date();
         sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6); 
@@ -225,7 +233,6 @@ const getDashboardStats = asyncHandler(async (_,res)=>{
             }
         });
 
-        console.log(lastMonthProductsPromise)
 
         const thisMonthUsersPromise = await User.find({
             createdAt:{
@@ -329,8 +336,7 @@ const getDashboardStats = asyncHandler(async (_,res)=>{
             quantity: i.orderItems.length,
             status: i.status,
           }));
-          console.log(thisMonthProducts.length)
-            console.log(lastMonthProducts.length)
+        
         const changePercent = {
             revenue: calculatePercentage( //this will calculate the percentage change in revenue
                 thisMonthRevenue,
@@ -365,17 +371,24 @@ const getDashboardStats = asyncHandler(async (_,res)=>{
             latestTransaction: modifiedLatestTransaction
         }
 
+        await redis.setex(key, 30, JSON.stringify(stats));
+
+    }
+
     return res.status(200).json(new ApiResponse(200,stats,"Dashboard stats fetched successfully"));
 });
 
 const getPieCharts = asyncHandler(async (req,res)=>{
 
-    let charts: Record<string, any> = {};
+    let charts: any = {};
 
     const key = "admin-pie-charts";
 
-    if(nodeCache.has(key)) charts = JSON.parse(nodeCache.get(key) as string);
-    else{
+    charts = await redis.get(key);
+
+    if(charts) charts = JSON.parse(charts);
+
+    else {
 
         const [
             processingOrder,
@@ -466,18 +479,20 @@ const getPieCharts = asyncHandler(async (req,res)=>{
             adminCustomer: adminCustomer
         }
 
-        nodeCache.set(key, JSON.stringify(charts));
+        await redis.setex(key,30, JSON.stringify(charts))
 
     }
-
+    
     return res.status(200).json(new ApiResponse(200,charts,"Pie charts fetched successfully"));
 });
 
 const getBarCharts = asyncHandler(async (req,res)=>{
-    let charts: Record<string, any> = {};
+    let charts: any = {};
     const key = "admin-bar-charts";
-    if(nodeCache.has(key)) charts = JSON.parse(nodeCache.get(key) as string);
-    else{
+    charts = await redis.get(key);
+    if(charts) charts = JSON.parse(charts);
+    else {
+        
         const today = new Date();
         const sixMonthsAgo = new Date();
         sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
@@ -527,7 +542,8 @@ const getBarCharts = asyncHandler(async (req,res)=>{
             orders: orderCounts
         }
 
-        nodeCache.set(key, JSON.stringify(charts));
+        await redis.setex(key, 30, JSON.stringify(charts));
+
     }
 
     return res.status(200).json(new ApiResponse(200,charts,"Bar charts fetched successfully"));
@@ -536,12 +552,14 @@ const getBarCharts = asyncHandler(async (req,res)=>{
 
 const getLineCharts = asyncHandler(async (req,res)=>{
     
-    let charts: Record<string, any> = {};
+    let charts: any = {};
 
     const key = "admin-line-charts";
 
-    if(nodeCache.has(key)) charts = JSON.parse(nodeCache.get(key) as string);
-    else{
+    charts = await redis.get(key);
+
+    if (charts) charts = JSON.parse(charts);
+    else {
 
         const today = new Date();
 
@@ -574,7 +592,8 @@ const getLineCharts = asyncHandler(async (req,res)=>{
             revenue: revenue
         }
 
-        nodeCache.set(key, JSON.stringify(charts));
+        await redis.setex(key,30,JSON.stringify(charts))
+
     }
 
     return res.status(200).json(new ApiResponse(200,charts,"Line charts fetched successfully"));

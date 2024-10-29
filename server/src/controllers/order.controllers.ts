@@ -6,7 +6,7 @@ import { Order } from "../models/order.models.js";
 import { NewOrderRequestBody } from "../types/types.js";
 import { reduceStock } from "../utils/features.js";
 import { invalidateCache } from "../utils/invalidCache.js";
-import { nodeCache } from "../app.js";
+import { redis } from "../index.js";
 
 
 
@@ -25,7 +25,7 @@ const newOrder = asyncHandler(async (req: Request<{}, {}, NewOrderRequestBody>, 
 
     await reduceStock(orderItems);
 
-     invalidateCache({
+     await invalidateCache({
         product: true,
         order: true,
         userId: user,
@@ -43,13 +43,19 @@ const myOrders = asyncHandler(async (req, res)=> {
 
     const key = `myorders_${user}`;
 
-    let orders = [];
+    let orders: any = [];
 
-    if (nodeCache.has(key)) orders = JSON.parse(nodeCache.get(key) as string);
+    orders = await redis.get(key);
+
+    if (orders) orders = JSON.parse(orders);
     else {
         orders = await Order.find({ user });
-        nodeCache.set(key,JSON.stringify(orders));
+
+        if ( !orders ) throw new ApiError(404, "No Orders Found");
+
+        await redis.setex(key, 200, JSON.stringify(orders));
     }
+
     return res.status(201).json(new ApiResponse(201, { orders }, "Orders fetched successfully"));
 
 });
@@ -57,11 +63,21 @@ const myOrders = asyncHandler(async (req, res)=> {
 
 const allOrder = asyncHandler(async (req, res)=> {
 
-    const key = `all-order`;
+    const key = `all-orders`;
 
-        let orders=[];
+        let orders: any=[];
 
-         orders = await Order.find().populate("user", "name")// connect user model in order model and show only user model-> only show name (name of the user)
+        orders = await redis.get(key);
+
+        if(orders) orders = JSON.parse(orders);
+
+        else {
+            orders = await Order.find().populate("user", "name");
+
+            if (!orders) throw new ApiError(404, "No Orders Found");
+
+            await redis.setex(key, 150, JSON.stringify(orders));
+        }
   
      return res.status(201).json(new ApiResponse(201, { orders }, "All Order fetched Sucessfuly"));
 
@@ -75,13 +91,17 @@ const getSingleOrder = asyncHandler(async (req,res)=> {
 
     let order;
 
-    if (nodeCache.has(key)) order = JSON.parse(nodeCache.get(key) as string)
-    else {
-          order = await Order.findById(id).populate("user", "name");
-          if ( !order ) throw new ApiError(404, "Order Not Found");
+    order = await redis.get(key);
 
-          nodeCache.set(key, JSON.stringify(order))
-          }
+    if (order) order = JSON.parse(order);
+
+    else {
+
+        order = await Order.findById(id).populate("user", "name");
+        if ( !order ) throw new ApiError(404, "Order Not Found");
+
+        await redis.setex(key, 200, JSON.stringify(order))
+    }
 
           return res.status(200)
                     .json(new ApiResponse(201, { order }, "Single order fetched Succesfully"))
@@ -90,8 +110,6 @@ const getSingleOrder = asyncHandler(async (req,res)=> {
 const processOrder = asyncHandler(async (req,res)=> {
 
     const { id } = req.params;
-
-    const key = `order-${id}`
 
     const order = await Order.findById(id);
 
@@ -114,7 +132,7 @@ const processOrder = asyncHandler(async (req,res)=> {
 
 
 
-    invalidateCache({ product: false, order: true, admin: true, userId: order.user, orderId: String(order._id) });
+    await invalidateCache({ product: false, order: true, admin: true, userId: order.user, orderId: String(order._id) });
 
     return res.status(200).json(new ApiResponse(200, { order: updatedOrder }, "Order Processed Succesfully"));
 
