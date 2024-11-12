@@ -4,6 +4,7 @@ import LoaderLayout from "../components/Loader";
 import { Toaster } from "react-hot-toast";
 import {  useSelector } from "react-redux";
 import { UserReducerInitialState } from "../types/reducer-types";
+import Footer from "../components/Footer";
 //import Header from "../components/Header";
 
 
@@ -114,6 +115,7 @@ const Routing = ()=>{
 
                 </Routes>  
                 </Suspense>
+                <Footer />
                 <Toaster position="bottom-center" />
                 
                 </>
